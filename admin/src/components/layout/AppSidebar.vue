@@ -19,30 +19,14 @@
         !isExpanded && !isHovered ? 'lg:justify-center' : 'justify-start',
       ]"
     >
-      <router-link to="/stats">
-        <img
-          v-if="isExpanded || isHovered || isMobileOpen"
-          class="dark:hidden"
-          src="/images/logo/logo.svg"
-          alt="Logo"
-          width="150"
-          height="40"
-        />
-        <img
-          v-if="isExpanded || isHovered || isMobileOpen"
-          class="hidden dark:block"
-          src="/images/logo/logo-dark.svg"
-          alt="Logo"
-          width="150"
-          height="40"
-        />
-        <img
-          v-else
-          src="/images/logo/logo-icon.svg"
-          alt="Logo"
-          width="32"
-          height="32"
-        />
+      <router-link to="/stats" class="flex items-center gap-3">
+        <!-- Expanded / hovered: logo + name -->
+        <template v-if="isExpanded || isHovered || isMobileOpen">
+          <img src="/logo.png" alt="Ferremania" class="h-10 w-10 object-contain flex-shrink-0" />
+          <span class="text-base font-bold text-gray-800 dark:text-white whitespace-nowrap">Ferremania</span>
+        </template>
+        <!-- Collapsed: icon only -->
+        <img v-else src="/logo.png" alt="Ferremania" class="h-9 w-9 object-contain" />
       </router-link>
     </div>
     <div

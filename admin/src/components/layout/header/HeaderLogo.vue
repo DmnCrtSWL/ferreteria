@@ -1,7 +1,8 @@
 <template>
-  <router-link to="/dashboard" class="lg:hidden">
-    <img class="dark:hidden" src="/images/logo/logo.svg" alt="Logo" />
-    <img class="hidden dark:block" src="/images/logo/logo-dark.svg" alt="Logo" />
+  <!-- Logo visible en mobile/header cuando el sidebar está cerrado -->
+  <router-link to="/stats" class="flex items-center gap-2 lg:hidden">
+    <img src="/logo.png" alt="Ferremania" class="h-9 w-9 object-contain" />
+    <span class="text-sm font-bold text-gray-800 dark:text-white">Ferremania</span>
   </router-link>
 </template>
 
