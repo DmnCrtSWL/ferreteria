@@ -199,7 +199,6 @@ import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
 
 import {
-  GridIcon,
   UserCircleIcon,
   UserGroupIcon,
   PageIcon,
@@ -220,11 +219,6 @@ const menuGroups = [
   {
     title: "Menu",
     items: [
-      {
-        icon: GridIcon,
-        name: "Dashboard",
-        path: "/stats",
-      },
       {
         icon: UserCircleIcon,
         name: "Usuarios",

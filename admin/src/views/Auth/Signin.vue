@@ -159,7 +159,7 @@ const handleSubmit = async () => {
     }
     const storage = keepLoggedIn.value ? localStorage : sessionStorage
     storage.setItem('user', JSON.stringify(data))
-    router.push('/stats')
+    router.push('/compras')
   } catch {
     errorMsg.value = 'No se pudo conectar al servidor. Intenta de nuevo.'
   } finally {

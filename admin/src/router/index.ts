@@ -8,15 +8,13 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/signin'
+      redirect: '/compras'
     },
     {
       path: '/stats',
       name: 'Ecommerce',
       component: () => import('../views/Ecommerce.vue'),
-      meta: {
-        title: 'Estadísticas',
-      },
+      meta: { title: 'Inicio' },
     },
     {
       path: '/usuarios',
@@ -254,7 +252,7 @@ router.beforeEach((to, _from, next) => {
 
   if (isAuthenticated && to.path === '/signin') {
     // Already logged in → skip login page
-    return next('/stats')
+    return next('/compras')
   }
 
   next()
