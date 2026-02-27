@@ -10,6 +10,10 @@
           <div class="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
             <div>
               <div class="mb-5 sm:mb-8">
+                <!-- Logo -->
+                <div class="flex justify-center mb-6">
+                  <img src="/logo.png" alt="Ferretería Logo" class="h-20 w-20 object-contain" />
+                </div>
                 <h1
                   class="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md"
                 >
@@ -19,6 +23,7 @@
                   ¡Ingresa tu correo electrónico y contraseña para acceder!
                 </p>
               </div>
+
               <div>
 
                 <form @submit.prevent="handleSubmit">
@@ -178,7 +183,7 @@
             <common-grid-shape />
             <div class="flex flex-col items-center max-w-xs">
               <router-link to="/" class="block mb-4">
-                <img width="{231}" height="{48}" src="/images/logo/auth-logo.svg" alt="Logo" />
+                <img src="/logo.png" alt="Ferretería Logo" class="h-28 w-28 object-contain drop-shadow-lg" />
               </router-link>
               <p class="text-center text-gray-400 dark:text-white/60">
                 Sistema Integral de Administración de Ferretería
