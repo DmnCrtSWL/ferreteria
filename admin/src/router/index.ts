@@ -241,7 +241,7 @@ export default router
 const PUBLIC_ROUTES = ['/signin', '/signup']
 
 router.beforeEach((to, _from, next) => {
-  document.title = `Ferretería | ${to.meta.title || 'Admin'}`
+  document.title = `Ferremania | ${to.meta.title || 'Admin'}`
 
   const user = localStorage.getItem('user') || sessionStorage.getItem('user')
   const isAuthenticated = !!user
