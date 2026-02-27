@@ -6,8 +6,24 @@ const { Pool } = require('pg');
 const app = express();
 
 // Middleware
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'https://ferreteria-admin.vercel.app',
+  // Add any preview URLs or custom domains here
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS blocked: ${origin}`));
+  },
+  credentials: true,
+}));
 app.use(express.json());
+
 
 // Database connection
 const pool = new Pool({
