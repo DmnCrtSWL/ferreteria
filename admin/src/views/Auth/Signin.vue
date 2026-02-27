@@ -145,15 +145,26 @@
                         >¿Olvidaste tu contraseña?</router-link
                       >
                     </div>
+                    <!-- Error message -->
+                    <div v-if="errorMsg" class="px-4 py-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+                      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      {{ errorMsg }}
+                    </div>
                     <!-- Button -->
                     <div>
                       <button
                         type="submit"
-                        class="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600"
+                        :disabled="loading"
+                        class="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        Ingresar
+                        <svg v-if="loading" class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        </svg>
+                        {{ loading ? 'Verificando...' : 'Ingresar' }}
                       </button>
                     </div>
+
                   </div>
                 </form>
               </div>
@@ -186,23 +197,47 @@ import { useRouter } from 'vue-router'
 import CommonGridShape from '@/components/common/CommonGridShape.vue'
 import FullScreenLayout from '@/components/layout/FullScreenLayout.vue'
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 const router = useRouter()
+
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const keepLoggedIn = ref(false)
+const loading = ref(false)
+const errorMsg = ref('')
 
 const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value
 }
 
-const handleSubmit = () => {
-  // Handle form submission
-  console.log('Form submitted', {
-    email: email.value,
-    password: password.value,
-    keepLoggedIn: keepLoggedIn.value,
-  })
-  router.push('/stats')
+const handleSubmit = async () => {
+  errorMsg.value = ''
+  if (!email.value || !password.value) {
+    errorMsg.value = 'Ingresa tu correo y contraseña.'
+    return
+  }
+  loading.value = true
+  try {
+    const res = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.value, password: password.value }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      errorMsg.value = data.error || 'Credenciales incorrectas'
+      return
+    }
+    // Persist session
+    const storage = keepLoggedIn.value ? localStorage : sessionStorage
+    storage.setItem('user', JSON.stringify(data))
+    router.push('/stats')
+  } catch {
+    errorMsg.value = 'No se pudo conectar al servidor. Intenta de nuevo.'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
+

@@ -237,7 +237,26 @@ const router = createRouter({
 
 export default router
 
-router.beforeEach((to, from, next) => {
+// Public routes that don't require authentication
+const PUBLIC_ROUTES = ['/signin', '/signup']
+
+router.beforeEach((to, _from, next) => {
   document.title = `Ferretería | ${to.meta.title || 'Admin'}`
+
+  const user = localStorage.getItem('user') || sessionStorage.getItem('user')
+  const isAuthenticated = !!user
+  const isPublic = PUBLIC_ROUTES.includes(to.path)
+
+  if (!isAuthenticated && !isPublic) {
+    // Not logged in → force to login
+    return next('/signin')
+  }
+
+  if (isAuthenticated && to.path === '/signin') {
+    // Already logged in → skip login page
+    return next('/stats')
+  }
+
   next()
 })
+

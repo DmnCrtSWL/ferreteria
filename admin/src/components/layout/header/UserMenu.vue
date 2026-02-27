@@ -4,7 +4,7 @@
       class="flex items-center text-gray-700 dark:text-gray-400"
       @click.prevent="toggleDropdown"
     >
-      <span class="block mr-1 font-medium text-theme-sm">Hugo</span>
+      <span class="block mr-1 font-medium text-theme-sm">{{ userName }}</span>
       <ChevronDownIcon :class="{ 'rotate-180': dropdownOpen }" />
     </button>
 
@@ -15,23 +15,22 @@
     >
       <div class="pb-3 border-b border-gray-200 dark:border-gray-800">
         <span class="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-          Hugo
+          {{ userName }}
         </span>
-        <span class="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-          Administrador
+        <span class="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400 capitalize">
+          {{ userRole }}
         </span>
       </div>
 
-      <router-link
-        to="/signin"
+      <button
         @click="signOut"
-        class="flex items-center gap-3 px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+        class="flex items-center gap-3 px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300 w-full text-left"
       >
         <LogoutIcon
           class="text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300"
         />
         Cerrar sesión
-      </router-link>
+      </button>
     </div>
     <!-- Dropdown End -->
   </div>
@@ -39,11 +38,23 @@
 
 <script setup>
 import { ChevronDownIcon, LogoutIcon } from '@/icons'
-import { RouterLink } from 'vue-router'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const dropdownOpen = ref(false)
 const dropdownRef = ref(null)
+
+// Read user from storage
+const storedUser = computed(() => {
+  try {
+    const raw = localStorage.getItem('user') || sessionStorage.getItem('user')
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+})
+
+const userName = computed(() => storedUser.value?.name || 'Usuario')
+const userRole = computed(() => storedUser.value?.role || '')
 
 const toggleDropdown = () => {
   dropdownOpen.value = !dropdownOpen.value
@@ -54,9 +65,10 @@ const closeDropdown = () => {
 }
 
 const signOut = () => {
-  // Implement sign out logic here
-  console.log('Signing out...')
+  localStorage.removeItem('user')
+  sessionStorage.removeItem('user')
   closeDropdown()
+  router.push('/signin')
 }
 
 const handleClickOutside = (event) => {

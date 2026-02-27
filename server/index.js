@@ -164,7 +164,41 @@ app.delete('/api/users/:id', async (req, res) => {
 
 // ─── Server ───────────────────────────────────────────────────────────────────
 
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+
+// POST /api/auth/login
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Correo y contraseña son requeridos' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, name, email, role, password FROM users WHERE email = $1 AND deleted_at IS NULL`,
+      [email]
+    );
+    if (rows.length === 0) {
+      return res.status(401).json({ error: 'Credenciales incorrectas' });
+    }
+    const user = rows[0];
+    if (user.password !== password) {
+      return res.status(401).json({ error: 'Credenciales incorrectas' });
+    }
+    // Return user info (never the password)
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al iniciar sesión' });
+  }
+});
+
 // ─── PURCHASES ───────────────────────────────────────────────────────────────
+
 
 const MX_TZ = 'America/Mexico_City';
 
