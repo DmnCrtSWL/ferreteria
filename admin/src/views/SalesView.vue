@@ -246,10 +246,10 @@ const rangeTo = ref('')
 const selectedMonth = ref(new Date().toISOString().slice(0, 7))
 
 const dateModes = [
-  { value: 'today', label: 'Hoy' },
-  { value: 'all',   label: 'Todas' },
-  { value: 'range', label: 'Rango' },
-  { value: 'month', label: 'Mes' },
+  { value: 'today' as const, label: 'Hoy' },
+  { value: 'all'   as const, label: 'Todas' },
+  { value: 'range' as const, label: 'Rango' },
+  { value: 'month' as const, label: 'Mes' },
 ]
 
 const PAGE_SIZE = 10
