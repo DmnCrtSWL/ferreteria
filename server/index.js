@@ -515,10 +515,6 @@ app.post('/api/inventario/import', upload.single('file'), async (req, res) => {
     const sheet = workbook.Sheets[sheetName];
     const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
     
-    // DEBUG: log header and first 3 rows to diagnose column mapping
-    console.log('[IMPORT] Header row:', JSON.stringify(data[0]));
-    data.slice(1, 4).forEach((row, i) => console.log(`[IMPORT] Row ${i+1}:`, JSON.stringify(row)));
-
     const rowsRaw = data.slice(1);
     
     const client = await pool.connect();
@@ -681,20 +677,7 @@ app.post('/api/sales', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // 1. Verify Inventory
-    for (const item of items) {
-      const invRes = await client.query('SELECT stock FROM inventory WHERE product_name = $1 AND deleted_at IS NULL FOR UPDATE', [item.name]);
-      if (invRes.rows.length === 0) {
-        throw new Error(`El producto "${item.name}" no existe en el inventario`);
-      }
-      const available = Number(invRes.rows[0].stock);
-      const requested = Number(item.quantity);
-      if (requested > available) {
-        throw new Error(`Stock insuficiente para "${item.name}". Solicitado: ${requested}, Disponible: ${available}`);
-      }
-    }
-
-    // 2. Insert Sale Header
+    // 1. Insert Sale Header
     const saleRes = await client.query(`
       INSERT INTO sales (folio, client_name, payment_method, date, total)
       VALUES ($1, $2, $3, $4, $5)
@@ -702,7 +685,7 @@ app.post('/api/sales', async (req, res) => {
     `, [folio || null, client_name, payment_method, date, total]);
     const saleId = saleRes.rows[0].id;
 
-    // 3. Insert Items && Deduct Inventory
+    // 2. Insert Items && Deduct from inventario (no stock validation)
     for (const item of items) {
       // Insert item
       await client.query(`
@@ -710,12 +693,12 @@ app.post('/api/sales', async (req, res) => {
         VALUES ($1, $2, $3, $4, $5, $6, $7)
       `, [saleId, item.name, item.unit, item.quantity, item.price, item.discount || 0, item.subtotal]);
 
-      // Deduct inventory
+      // Deduct from inventario (may go negative — allowed)
       await client.query(`
-        UPDATE inventory
-        SET stock = stock - $1, edited_at = NOW()
-        WHERE product_name = $2
-      `, [item.quantity, item.name]);
+        UPDATE inventario
+        SET existencia = existencia - $1, edited_at = NOW()
+        WHERE id = $2
+      `, [item.quantity, item.id]);
     }
 
     await client.query('COMMIT');
@@ -760,7 +743,7 @@ app.put('/api/sales/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/sales/:id (Soft delete Header + Revert Inventory using sale_items)
+// DELETE /api/sales/:id (Soft delete Header + Revert inventario using sale_items)
 app.delete('/api/sales/:id', async (req, res) => {
   const client = await pool.connect();
   try {
@@ -775,13 +758,13 @@ app.delete('/api/sales/:id', async (req, res) => {
 
     if (!rows.length) throw new Error('Venta no encontrada o ya eliminada');
 
-    // 2. Revert inventory
+    // 2. Revert existencia in inventario by product name
     const itemsRes = await client.query('SELECT product_name, quantity FROM sale_items WHERE sale_id = $1', [req.params.id]);
     for (const item of itemsRes.rows) {
       await client.query(`
-        UPDATE inventory
-        SET stock = stock + $1, edited_at = NOW()
-        WHERE product_name = $2
+        UPDATE inventario
+        SET existencia = existencia + $1, edited_at = NOW()
+        WHERE producto = $2 AND deleted_at IS NULL
       `, [item.quantity, item.product_name]);
     }
 
