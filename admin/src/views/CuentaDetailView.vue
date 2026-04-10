@@ -35,13 +35,22 @@
             <p :class="['text-3xl font-bold mt-1', cuentaTotal < 0 ? 'text-red-500' : 'text-green-500']">
               {{ cuentaTotal < 0 ? '-' : (cuentaTotal > 0 ? '+' : '') }}${{ Math.abs(cuentaTotal).toLocaleString('es-MX', {minimumFractionDigits: 2}) }}
             </p>
-            <button 
-              @click="openPaymentModal"
-              class="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-green-500 hover:bg-green-600 shadow-theme-xs"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-              Abonar o Pagar
-            </button>
+            <div class="mt-4 flex gap-2 flex-wrap justify-end">
+              <button
+                @click="generateEstadoCuenta"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 transition-colors rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700 shadow-theme-xs"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                Estado de Cuenta
+              </button>
+              <button 
+                @click="openPaymentModal"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-green-500 hover:bg-green-600 shadow-theme-xs"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Abonar o Pagar
+              </button>
+            </div>
           </div>
         </div>
 
@@ -125,6 +134,200 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+
+// ─── Canvas-based Estado de Cuenta generator ─────────────────────────────────
+const generateEstadoCuenta = () => {
+  const W = 720
+  const H = 900
+  const canvas = document.createElement('canvas')
+  canvas.width = W * 2      // 2x for retina
+  canvas.height = H * 2
+  const ctx = canvas.getContext('2d')!
+  ctx.scale(2, 2)
+
+  const BRAND    = '#1D4ED8'
+  const BRAND_LT = '#EFF6FF'
+  const GREEN    = '#16A34A'
+  const RED      = '#DC2626'
+  const GRAY_900 = '#111827'
+  const GRAY_500 = '#6B7280'
+  const GRAY_200 = '#E5E7EB'
+  const WHITE    = '#FFFFFF'
+
+  // ── Background ──────────────────────────────────────────────────────────────
+  ctx.fillStyle = '#F8FAFC'
+  ctx.fillRect(0, 0, W, H)
+
+  // ── Top header bar ──────────────────────────────────────────────────────────
+  ctx.fillStyle = BRAND
+  ctx.fillRect(0, 0, W, 80)
+
+  // Store name
+  ctx.fillStyle = WHITE
+  ctx.font = 'bold 22px system-ui, sans-serif'
+  ctx.fillText('Ferretería', 36, 36)
+  ctx.font = '13px system-ui, sans-serif'
+  ctx.fillStyle = 'rgba(255,255,255,0.75)'
+  ctx.fillText('Estado de Cuenta del Cliente', 36, 58)
+
+  // Date top-right
+  const now = new Date()
+  const dateStr = now.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
+  ctx.font = '12px system-ui, sans-serif'
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'
+  ctx.textAlign = 'right'
+  ctx.fillText(dateStr, W - 36, 44)
+  ctx.textAlign = 'left'
+
+  // ── Client info card ────────────────────────────────────────────────────────
+  roundRect(ctx, 28, 100, W - 56, 110, 12)
+  ctx.fillStyle = WHITE
+  ctx.fill()
+  ctx.strokeStyle = GRAY_200
+  ctx.lineWidth = 1
+  ctx.stroke()
+
+  const c = cliente.value
+  ctx.fillStyle = GRAY_500
+  ctx.font = '11px system-ui, sans-serif'
+  ctx.fillText('CLIENTE', 50, 128)
+
+  ctx.fillStyle = GRAY_900
+  ctx.font = 'bold 20px system-ui, sans-serif'
+  ctx.fillText(c?.name || '—', 50, 152)
+
+  ctx.fillStyle = GRAY_500
+  ctx.font = '13px system-ui, sans-serif'
+  const contactParts = []
+  if (c?.phone)   contactParts.push('📞 ' + c.phone)
+  if (c?.address) contactParts.push('🏠 ' + c.address)
+  ctx.fillText(contactParts.join('   ') || 'Sin datos de contacto', 50, 175)
+
+  // ── Balance card ────────────────────────────────────────────────────────────
+  const isNeg = cuentaTotal.value < 0
+  const balColor  = isNeg ? RED   : GREEN
+  const balBg     = isNeg ? '#FEF2F2' : '#F0FDF4'
+  const balBorder = isNeg ? '#FECACA' : '#BBF7D0'
+  const balLabel  = isNeg ? 'SALDO PENDIENTE' : 'SALDO A FAVOR'
+  const balSign   = isNeg ? '' : (cuentaTotal.value > 0 ? '+' : '')
+  const balAmt    = `${balSign}$${Math.abs(cuentaTotal.value).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
+
+  roundRect(ctx, 28, 230, W - 56, 88, 12)
+  ctx.fillStyle = balBg
+  ctx.fill()
+  ctx.strokeStyle = balBorder
+  ctx.lineWidth = 1.5
+  ctx.stroke()
+
+  ctx.fillStyle = balColor
+  ctx.font = 'bold 11px system-ui, sans-serif'
+  ctx.fillText(balLabel, 50, 258)
+
+  ctx.font = 'bold 32px system-ui, sans-serif'
+  ctx.fillText(balAmt, 50, 300)
+
+  // ── Movements section ───────────────────────────────────────────────────────
+  const last5 = [...movimientos.value].slice(0, 5)
+
+  ctx.fillStyle = GRAY_500
+  ctx.font = 'bold 11px system-ui, sans-serif'
+  ctx.fillText('ÚLTIMOS MOVIMIENTOS', 28, 352)
+
+  // Table header
+  ctx.fillStyle = GRAY_200
+  ctx.fillRect(28, 362, W - 56, 32)
+  ctx.fillStyle = GRAY_500
+  ctx.font = 'bold 11px system-ui, sans-serif'
+  ctx.fillText('CONCEPTO', 44, 383)
+  ctx.fillText('FORMA DE PAGO', 280, 383)
+  ctx.fillText('FECHA', 450, 383)
+  ctx.textAlign = 'right'
+  ctx.fillText('MONTO', W - 44, 383)
+  ctx.textAlign = 'left'
+
+  // Rows
+  let rowY = 394
+  if (last5.length === 0) {
+    ctx.fillStyle = GRAY_500
+    ctx.font = '13px system-ui, sans-serif'
+    ctx.fillText('Sin movimientos registrados.', 44, rowY + 30)
+  } else {
+    last5.forEach((mov, idx) => {
+      const rowH = 44
+      // Alternating row bg
+      ctx.fillStyle = idx % 2 === 0 ? WHITE : '#F9FAFB'
+      ctx.fillRect(28, rowY, W - 56, rowH)
+
+      const label = mov.type === 'abono' ? 'Abono #' + mov.id : 'Venta #' + mov.id
+      const dateLabel = fmtDate(mov.date)
+      const amtLabel = (mov.type === 'cargo' ? '' : '+') + '$' + Math.abs(mov.total).toLocaleString('es-MX', { minimumFractionDigits: 2 })
+      const amtColor = mov.type === 'cargo' ? RED : GREEN
+
+      ctx.fillStyle = GRAY_900
+      ctx.font = 'bold 13px system-ui, sans-serif'
+      ctx.fillText(label, 44, rowY + 22)
+
+      ctx.fillStyle = GRAY_500
+      ctx.font = '12px system-ui, sans-serif'
+      ctx.fillText(mov.payment_method || '—', 280, rowY + 22)
+      ctx.fillText(dateLabel, 450, rowY + 22)
+
+      ctx.fillStyle = amtColor
+      ctx.font = 'bold 13px system-ui, sans-serif'
+      ctx.textAlign = 'right'
+      ctx.fillText(amtLabel, W - 44, rowY + 22)
+      ctx.textAlign = 'left'
+
+      // Bottom divider
+      ctx.strokeStyle = GRAY_200
+      ctx.lineWidth = 0.5
+      ctx.beginPath()
+      ctx.moveTo(28, rowY + rowH)
+      ctx.lineTo(W - 28, rowY + rowH)
+      ctx.stroke()
+
+      rowY += rowH
+    })
+  }
+
+  // ── Disclaimer ──────────────────────────────────────────────────────────────
+  const discY = H - 70
+  ctx.fillStyle = BRAND_LT
+  ctx.fillRect(0, discY, W, H - discY)
+
+  ctx.fillStyle = BRAND
+  ctx.font = 'bold 10px system-ui, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('DOCUMENTO DE CARÁCTER INFORMATIVO', W / 2, discY + 22)
+  ctx.fillStyle = GRAY_500
+  ctx.font = '10px system-ui, sans-serif'
+  ctx.fillText('Este estado de cuenta es una referencia informativa y no constituye un documento legal o fiscal.', W / 2, discY + 40)
+  ctx.fillText(`Generado el ${now.toLocaleString('es-MX')}`, W / 2, discY + 57)
+  ctx.textAlign = 'left'
+
+  // ── Download ─────────────────────────────────────────────────────────────────
+  const link = document.createElement('a')
+  const safeName = (c?.name || 'cliente').replace(/\s+/g, '_')
+  link.download = `estado_cuenta_${safeName}_${now.toISOString().split('T')[0]}.png`
+  link.href = canvas.toDataURL('image/png')
+  link.click()
+}
+
+// Helper: rounded rectangle path
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r)
+  ctx.lineTo(x + w, y + h - r)
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+  ctx.lineTo(x + r, y + h)
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r)
+  ctx.lineTo(x, y + r)
+  ctx.quadraticCurveTo(x, y, x + r, y)
+  ctx.closePath()
+}
+// ─────────────────────────────────────────────────────────────────────────────
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 
