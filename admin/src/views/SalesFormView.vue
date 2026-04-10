@@ -79,9 +79,10 @@
                 @mousedown.prevent="selectProduct(item)"
                 class="px-4 py-2 cursor-pointer hover:bg-brand-50 dark:hover:bg-gray-700 border-b last:border-0 dark:border-gray-700 text-sm"
               >
-                <div class="font-medium text-gray-900 dark:text-white">{{ item.product_name }}</div>
+                <div class="font-medium text-gray-900 dark:text-white">{{ item.producto }}</div>
                 <div class="text-xs text-gray-500 flex justify-between mt-1">
-                  <span>Stock: <strong :class="{'text-red-500': item.stock <= 0}">{{ item.stock }} {{ item.unit }}</strong></span>
+                  <span>Stock: <strong :class="{'text-red-500': item.existencia <= 0}">{{ item.existencia }}</strong></span>
+                  <span class="text-green-600 dark:text-green-400 font-medium">${{ Number(item.p_venta).toFixed(2) }}</span>
                 </div>
               </li>
             </ul>
@@ -92,7 +93,7 @@
             <!-- Selected Product Info -->
             <div v-if="newProduct.product" class="mt-2 text-sm text-brand-600 dark:text-brand-400 font-medium flex items-center gap-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-              Seleccionado: {{ newProduct.product.product_name }} (Max: {{ newProduct.product.stock }})
+              Seleccionado: {{ newProduct.product.producto }} (Max: {{ newProduct.product.existencia }})
             </div>
           </div>
           
@@ -104,11 +105,11 @@
               v-model.number="newProduct.quantity" 
               type="number" 
               min="1" 
-              :max="newProduct.product ? newProduct.product.stock : 1"
+              :max="newProduct.product ? newProduct.product.existencia : 1"
               required
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white outline-none" 
             />
-            <p v-if="newProduct.quantity > (newProduct.product?.stock || 0)" class="text-xs text-red-500 mt-1">Supera stock</p>
+            <p v-if="newProduct.quantity > (newProduct.product?.existencia || 0)" class="text-xs text-red-500 mt-1">Supera stock</p>
           </div>
 
           <div class="w-full lg:w-32">
@@ -152,7 +153,7 @@
               type="submit"
               class="w-full lg:w-auto p-2.5 text-white bg-brand-500 rounded-lg hover:bg-brand-600 transition-colors focus:ring-4 focus:ring-brand-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
               title="Añadir al Ticket"
-              :disabled="!newProduct.product || newProduct.quantity > newProduct.product.stock || newProduct.quantity <= 0"
+              :disabled="!newProduct.product || newProduct.quantity > newProduct.product.existencia || newProduct.quantity <= 0"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -346,17 +347,17 @@ const closeClientDropdown = (e: Event) => {
   }
 }
 
-// ─── Inventory & Autocomplete Logic
+// ─── Inventario & Autocomplete Logic
 const inventory = ref<any[]>([])
 const searchQuery = ref('')
 const showDropdown = ref(false)
 
 const fetchInventory = async () => {
   try {
-    const res = await fetch(`${API}/api/inventory`);
+    const res = await fetch(`${API}/api/inventario`);
     if (res.ok) inventory.value = await res.json();
   } catch (e) {
-    console.error('Failed to load inventory');
+    console.error('Failed to load inventario');
   }
 }
 
@@ -379,26 +380,26 @@ const closeDropdown = (e: Event) => {
   }
 }
 
-// Filter the inventory based on search query AND ensures stock > 0
+// Filter the inventory based on search query AND ensures existencia > 0
 const filteredInventory = computed(() => {
-  if (!searchQuery.value) return inventory.value.filter(i => i.stock > 0).slice(0, 10)
+  if (!searchQuery.value) return inventory.value.filter(i => i.existencia > 0).slice(0, 10)
   const q = searchQuery.value.toLowerCase()
   return inventory.value
-    .filter(i => i.stock > 0 && i.product_name.toLowerCase().includes(q))
+    .filter(i => i.existencia > 0 && i.producto.toLowerCase().includes(q))
     .slice(0, 10) // Render limit for performance
 })
 
 const selectProduct = (item: any) => {
-  searchQuery.value = item.product_name
+  searchQuery.value = item.producto
   newProduct.value.product = item
-  newProduct.value.unit = item.unit
-  newProduct.value.price = 0 // Needs manual input for sales or you can wire an API price catalogue later
+  newProduct.value.unit = 'Pza'
+  newProduct.value.price = Number(item.p_venta) || 0  // Auto-fill con precio de venta
   showDropdown.value = false
 }
 
 const onSearchInput = () => {
   // If user modifies search, clear selected product
-  if (newProduct.value.product && searchQuery.value !== newProduct.value.product.product_name) {
+  if (newProduct.value.product && searchQuery.value !== newProduct.value.product.producto) {
     newProduct.value.product = null
     newProduct.value.unit = 'Pza'
     newProduct.value.price = 0
@@ -431,12 +432,12 @@ const totalSale = computed(() => {
 // ─── Actions
 const addProduct = () => {
   const p = newProduct.value.product
-  if (!p || newProduct.value.quantity <= 0 || newProduct.value.quantity > p.stock) return
+  if (!p || newProduct.value.quantity <= 0 || newProduct.value.quantity > p.existencia) return
   
   // Enforce single entry per product logic or simply add to array
   ticketProducts.value.push({
     id: p.id,
-    name: p.product_name,
+    name: p.producto,
     unit: newProduct.value.unit,
     quantity: newProduct.value.quantity,
     price: newProduct.value.price,
@@ -445,7 +446,7 @@ const addProduct = () => {
   })
   
   // Decrease local available stock to prevent double-selling the same stock in the same ticket
-  p.stock -= newProduct.value.quantity
+  p.existencia -= newProduct.value.quantity
 
   // Reset form
   searchQuery.value = ''
@@ -456,9 +457,9 @@ const removeProduct = (index: number) => {
   const removed = ticketProducts.value[index]
   ticketProducts.value.splice(index, 1)
 
-  // Restore local available stock
+  // Restore local available existencia
   const invMatch = inventory.value.find(i => i.id === removed.id)
-  if (invMatch) invMatch.stock += removed.quantity
+  if (invMatch) invMatch.existencia += removed.quantity
 }
 
 const isSaving = ref(false)
