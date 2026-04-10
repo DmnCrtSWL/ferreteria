@@ -8,7 +8,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/compras'
+      redirect: '/ventas'
     },
     {
       path: '/stats',
@@ -81,6 +81,14 @@ const router = createRouter({
       },
     },
     {
+      path: '/inventario/nuevo',
+      name: 'Nuevo Producto',
+      component: () => import('../views/InventoryFormView.vue'),
+      meta: {
+        title: 'Nuevo Producto',
+      },
+    },
+    {
       path: '/ventas',
       name: 'Ventas',
       component: () => import('../views/SalesView.vue'),
@@ -94,6 +102,22 @@ const router = createRouter({
       component: () => import('../views/SalesFormView.vue'),
       meta: {
         title: 'Nueva Venta',
+      },
+    },
+    {
+      path: '/cuentas',
+      name: 'Cuentas',
+      component: () => import('../views/CuentasView.vue'),
+      meta: {
+        title: 'Cuentas',
+      },
+    },
+    {
+      path: '/cuentas/:id',
+      name: 'Detalle de Cuenta',
+      component: () => import('../views/CuentaDetailView.vue'),
+      meta: {
+        title: 'Detalle de Cuenta',
       },
     },
     {
@@ -241,9 +265,17 @@ const PUBLIC_ROUTES = ['/signin', '/signup']
 router.beforeEach((to, _from, next) => {
   document.title = `Ferremania | ${to.meta.title || 'Admin'}`
 
-  const user = localStorage.getItem('user') || sessionStorage.getItem('user')
-  const isAuthenticated = !!user
+  const rawUser = localStorage.getItem('user') || sessionStorage.getItem('user')
+  const isAuthenticated = !!rawUser
   const isPublic = PUBLIC_ROUTES.includes(to.path)
+  
+  let userRole = ''
+  if (rawUser) {
+    try {
+      const parsed = JSON.parse(rawUser)
+      userRole = parsed?.role || ''
+    } catch (e) {}
+  }
 
   if (!isAuthenticated && !isPublic) {
     // Not logged in → force to login
@@ -252,7 +284,12 @@ router.beforeEach((to, _from, next) => {
 
   if (isAuthenticated && to.path === '/signin') {
     // Already logged in → skip login page
-    return next('/compras')
+    return next('/ventas')
+  }
+
+  if (isAuthenticated && to.path.startsWith('/compras') && userRole !== 'Sistemas') {
+    // Protect compras section
+    return next('/ventas')
   }
 
   next()

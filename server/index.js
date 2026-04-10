@@ -2,6 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const multer = require('multer');
+const xlsx = require('xlsx');
+
+const upload = multer({ dest: 'uploads/' });
 
 const app = express();
 
@@ -36,6 +40,17 @@ pool.connect((err, client, release) => {
     console.error('Error acquiring database client', err.stack);
   } else {
     console.log('Database connected successfully');
+    client.query(`
+      CREATE TABLE IF NOT EXISTS client_payments (
+        id SERIAL PRIMARY KEY,
+        client_name VARCHAR(255) NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        payment_method VARCHAR(100),
+        date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        deleted_at TIMESTAMP WITH TIME ZONE
+      );
+    `).catch(err => console.error('Error creating client_payments table', err));
     release();
   }
 });
@@ -86,7 +101,7 @@ app.post('/api/users', async (req, res) => {
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Nombre, correo y contraseña son requeridos' });
   }
-  const validRoles = ['administrador', 'operativo'];
+  const validRoles = ['administrador', 'operativo', 'Sistemas'];
   const userRole = validRoles.includes(role) ? role : 'operativo';
   try {
     const { rows } = await pool.query(
@@ -109,7 +124,7 @@ app.post('/api/users', async (req, res) => {
 app.put('/api/users/:id', async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-    const validRoles = ['administrador', 'operativo'];
+    const validRoles = ['administrador', 'operativo', 'Sistemas'];
     const fields = [];
     const values = [];
     let idx = 1;
@@ -395,6 +410,181 @@ app.post('/api/purchases/:id/items', async (req, res) => {
 
 // ─── INVENTORY ────────────────────────────────────────────────────────────────
 
+// ─── INVENTARIO (NUEVO) ───────────────────────────────────────────────────────
+app.get('/api/inventario', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT id, codigo, producto, p_costo, p_venta, p_mayoreo, existencia, inv_minimo, inv_maximo, departamento, created_at, edited_at
+      FROM inventario
+      WHERE deleted_at IS NULL
+      ORDER BY producto ASC
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener nuevo inventario' });
+  }
+});
+
+app.post('/api/inventario', async (req, res) => {
+  const { 
+    codigo, 
+    producto, 
+    p_costo, 
+    p_venta, 
+    p_mayoreo, 
+    existencia, 
+    inv_minimo, 
+    inv_maximo, 
+    departamento 
+  } = req.body;
+
+  if (!producto) {
+    return res.status(400).json({ error: 'El nombre del producto es requerido' });
+  }
+
+  try {
+    const { rows } = await pool.query(`
+      INSERT INTO inventario (codigo, producto, p_costo, p_venta, p_mayoreo, existencia, inv_minimo, inv_maximo, departamento)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+    `, [
+      codigo || null, 
+      producto, 
+      p_costo || 0, 
+      p_venta || 0, 
+      p_mayoreo || 0, 
+      existencia || 0, 
+      inv_minimo || 0, 
+      inv_maximo || 0, 
+      departamento || null
+    ]);
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al crear producto en el inventario' });
+  }
+});
+
+app.put('/api/inventario/:id', async (req, res) => {
+  const { existencia, p_venta, p_mayoreo } = req.body;
+  const fields = [];
+  const values = [];
+  let idx = 1;
+
+  if (existencia !== undefined) { fields.push(`existencia = $${idx++}`); values.push(existencia); }
+  if (p_venta !== undefined) { fields.push(`p_venta = $${idx++}`); values.push(p_venta); }
+  if (p_mayoreo !== undefined) { fields.push(`p_mayoreo = $${idx++}`); values.push(p_mayoreo); }
+
+  if (fields.length === 0) return res.status(400).json({ error: 'Faltan campos (existencia, p_venta o p_mayoreo)' });
+
+  fields.push(`edited_at = NOW()`);
+  values.push(req.params.id);
+
+  try {
+    const { rows } = await pool.query(`
+      UPDATE inventario 
+      SET ${fields.join(', ')}
+      WHERE id = $${idx} AND deleted_at IS NULL
+      RETURNING *
+    `, values);
+
+    if (rows.length === 0) return res.status(404).json({ error: 'Producto no encontrado' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error actualizando inventario' });
+  }
+});
+
+app.post('/api/inventario/import', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo' });
+  
+  const parseNum = (str) => {
+    if (!str) return 0;
+    if (typeof str === 'number') return str;
+    const clean = str.replace(/[^\d.-]/g, '');
+    const num = parseFloat(clean);
+    return isNaN(num) ? 0 : num;
+  };
+
+  try {
+    const workbook = xlsx.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+    
+    const rowsRaw = data.slice(1);
+    
+    const client = await pool.connect();
+    let updatedCount = 0;
+    let insertedCount = 0;
+
+    try {
+      await client.query('BEGIN');
+      
+      for (const row of rowsRaw) {
+        if (!row || row.length === 0) continue;
+        
+        const codigo = String(row[0] || '').trim();
+        const producto = String(row[1] || '').trim();
+        
+        if (!producto) continue;
+
+        const p_costo = parseNum(row[2]);
+        const p_venta = parseNum(row[3]);
+        const p_mayoreo = parseNum(row[4]);
+        const existencia = parseNum(row[5]);
+        const inv_minimo = parseNum(row[6]);
+        const inv_maximo = parseNum(row[7]);
+        const departamento = String(row[8] || '').trim();
+
+        let existingResult;
+        if (codigo) {
+           existingResult = await client.query('SELECT id FROM inventario WHERE codigo = $1 AND deleted_at IS NULL LIMIT 1', [codigo]);
+           if (existingResult.rows.length === 0) {
+              existingResult = await client.query('SELECT id FROM inventario WHERE producto = $1 AND deleted_at IS NULL LIMIT 1', [producto]);
+           }
+        } else {
+           existingResult = await client.query('SELECT id FROM inventario WHERE producto = $1 AND deleted_at IS NULL LIMIT 1', [producto]);
+        }
+
+        if (existingResult.rows.length > 0) {
+           const id = existingResult.rows[0].id;
+           await client.query(`
+             UPDATE inventario 
+             SET codigo = $1, producto = $2, p_costo = $3, p_venta = $4, p_mayoreo = $5, existencia = $6, inv_minimo = $7, inv_maximo = $8, departamento = $9, edited_at = NOW()
+             WHERE id = $10
+           `, [codigo || null, producto, p_costo, p_venta, p_mayoreo, existencia, inv_minimo, inv_maximo, departamento, id]);
+           updatedCount++;
+        } else {
+           await client.query(`
+             INSERT INTO inventario (codigo, producto, p_costo, p_venta, p_mayoreo, existencia, inv_minimo, inv_maximo, departamento)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           `, [codigo || null, producto, p_costo, p_venta, p_mayoreo, existencia, inv_minimo, inv_maximo, departamento]);
+           insertedCount++;
+        }
+      }
+      
+      await client.query('COMMIT');
+      res.json({ message: 'Importación completada', updatedCount, insertedCount });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+      const fs = require('fs');
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+    }
+  } catch (error) {
+    console.error('Error importando Excel:', error);
+    res.status(500).json({ error: 'Error procesando el archivo Excel' });
+  }
+});
+
+// ─── INVENTORY (OLD) ──────────────────────────────────────────────────────────
 // GET /api/inventory
 app.get('/api/inventory', async (req, res) => {
   try {
@@ -712,94 +902,148 @@ app.delete('/api/clientes/:id', async (req, res) => {
     res.status(500).json({ error: 'Error al eliminar cliente' });
   }
 });
+// ─── CUENTAS ───────────────────────────────────────────────────────────────────
+
+// GET /api/cuentas
+app.get('/api/cuentas', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT 
+        c.id, 
+        c.name AS cliente, 
+        (SELECT MAX(date) FROM sales WHERE LOWER(TRIM(client_name)) = LOWER(TRIM(c.name)) AND deleted_at IS NULL) as ultima_compra, 
+        (
+          COALESCE((SELECT SUM(amount) FROM client_payments WHERE LOWER(TRIM(client_name)) = LOWER(TRIM(c.name)) AND deleted_at IS NULL), 0)
+          -
+          COALESCE((SELECT SUM(total) FROM sales WHERE LOWER(TRIM(client_name)) = LOWER(TRIM(c.name)) AND deleted_at IS NULL), 0)
+        ) as cuenta_total
+      FROM clientes c
+      WHERE c.deleted_at IS NULL
+      ORDER BY c.id DESC
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener cuentas' });
+  }
+});
+
+// GET /api/cuentas/:id/movimientos
+app.get('/api/cuentas/:id/movimientos', async (req, res) => {
+  try {
+    const { rows: clientRows } = await pool.query(`SELECT name FROM clientes WHERE id = $1 LIMIT 1`, [req.params.id]);
+    if (!clientRows.length) return res.status(404).json({ error: 'Cliente no encontrado' });
+    
+    const clientName = clientRows[0].name;
+
+    const { rows: salesRows } = await pool.query(`
+      SELECT id, date, (total * -1) AS total, payment_method, folio, 'cargo' as type
+      FROM sales
+      WHERE LOWER(TRIM(client_name)) = LOWER(TRIM($1)) AND deleted_at IS NULL
+      UNION ALL
+      SELECT id, date, amount AS total, payment_method, NULL as folio, 'abono' as type
+      FROM client_payments
+      WHERE LOWER(TRIM(client_name)) = LOWER(TRIM($1)) AND deleted_at IS NULL
+      ORDER BY date DESC
+    `, [clientName]);
+    
+    res.json(salesRows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener movimientos' });
+  }
+});
+
+
+// POST /api/cuentas/:id/pagos
+app.post('/api/cuentas/:id/pagos', async (req, res) => {
+  const { amount, payment_method } = req.body;
+  if (!amount || !payment_method) return res.status(400).json({ error: 'Monto y forma de pago son requeridos' });
+  
+  try {
+    const { rows: clientRows } = await pool.query(`SELECT name FROM clientes WHERE id = $1 LIMIT 1`, [req.params.id]);
+    if (!clientRows.length) return res.status(404).json({ error: 'Cliente no encontrado' });
+    const clientName = clientRows[0].name;
+
+    const { rows } = await pool.query(`
+      INSERT INTO client_payments (client_name, amount, payment_method)
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `, [clientName, amount, payment_method]);
+    
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al registrar abono' });
+  }
+});
+
 
 // ─── REPORTS ──────────────────────────────────────────────────────────────────
 
-// GET /api/reports/payments?period=today|month|range|all&start=YYYY-MM-DD&end=YYYY-MM-DD&month=YYYY-MM
+// GET /api/reports/payments?period...
 app.get('/api/reports/payments', async (req, res) => {
   const { period, start, end, month } = req.query;
 
-  // Build date condition based on period
   const buildDateWhere = (col) => {
     if (period === 'today') {
-      return `DATE(${col} AT TIME ZONE 'America/Mexico_City') = CURRENT_DATE AT TIME ZONE 'America/Mexico_City'`;
+      return `DATE(${col} AT TIME ZONE 'America/Mexico_City') = DATE(CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')`;
     }
     if (period === 'month' && month) {
       return `TO_CHAR(${col} AT TIME ZONE 'America/Mexico_City', 'YYYY-MM') = '${month.replace(/'/g, "''")}'`;
     }
     if (period === 'range' && start && end) {
-      return `${col} BETWEEN '${start.replace(/'/g, "''")}' AND '${end.replace(/'/g, "''")} 23:59:59'`;
+      return `DATE(${col} AT TIME ZONE 'America/Mexico_City') BETWEEN '${start.replace(/'/g, "''")}' AND '${end.replace(/'/g, "''")}'`;
     }
     return '1=1'; // all
   };
 
-  // For purchases (date column is a DATE type, no timezone needed)
-  const buildPurchaseDateWhere = () => {
-    if (period === 'today') {
-      const today = new Date().toISOString().slice(0, 10);
-      return `date = '${today}'`;
-    }
-    if (period === 'month' && month) {
-      return `TO_CHAR(date, 'YYYY-MM') = '${month.replace(/'/g, "''")}'`;
-    }
-    if (period === 'range' && start && end) {
-      return `date BETWEEN '${start.replace(/'/g, "''")}' AND '${end.replace(/'/g, "''")}'`;
-    }
-    return '1=1';
-  };
-
-  const buildSalesDateWhere = () => {
-    if (period === 'today') {
-      const today = new Date().toISOString().slice(0, 10);
-      return `date = '${today}'`;
-    }
-    if (period === 'month' && month) {
-      return `TO_CHAR(date, 'YYYY-MM') = '${month.replace(/'/g, "''")}'`;
-    }
-    if (period === 'range' && start && end) {
-      return `date BETWEEN '${start.replace(/'/g, "''")}' AND '${end.replace(/'/g, "''")}'`;
-    }
-    return '1=1';
-  };
-
   try {
-    const [purchasesRes, salesRes] = await Promise.all([
+    const [paymentsRes, deudoresRes] = await Promise.all([
       pool.query(`
-        SELECT payment_method, COALESCE(SUM(total), 0)::numeric AS total
-        FROM purchases
-        WHERE deleted_at IS NULL AND ${buildPurchaseDateWhere()}
+        SELECT payment_method, COALESCE(SUM(amount), 0)::numeric AS total
+        FROM client_payments
+        WHERE deleted_at IS NULL AND ${buildDateWhere('date')}
         GROUP BY payment_method
       `),
       pool.query(`
-        SELECT payment_method, COALESCE(SUM(total), 0)::numeric AS total
-        FROM sales
-        WHERE deleted_at IS NULL AND ${buildSalesDateWhere()}
-        GROUP BY payment_method
+        WITH Deudores AS (
+          SELECT 
+            c.id, 
+            c.name,
+            (
+              COALESCE((SELECT SUM(total) FROM sales WHERE LOWER(TRIM(client_name)) = LOWER(TRIM(c.name)) AND deleted_at IS NULL), 0)
+              -
+              COALESCE((SELECT SUM(amount) FROM client_payments WHERE LOWER(TRIM(client_name)) = LOWER(TRIM(c.name)) AND deleted_at IS NULL), 0)
+            ) as deuda
+          FROM clientes c
+          WHERE c.deleted_at IS NULL
+        )
+        SELECT name, deuda FROM Deudores WHERE ROUND(deuda::numeric, 2) > 0 ORDER BY deuda DESC
       `)
     ]);
 
-    const METHODS = ['Efectivo', 'Transferencia', 'Tarjeta', 'Crédito'];
-    const egresosMap = {};
+    const METHODS = ['Efectivo', 'Transferencia', 'Tarjeta'];
     const ingresosMap = {};
-    for (const r of purchasesRes.rows) egresosMap[r.payment_method] = Number(r.total);
-    for (const r of salesRes.rows) ingresosMap[r.payment_method] = Number(r.total);
+    for (const r of paymentsRes.rows) ingresosMap[r.payment_method] = Number(r.total);
 
-    const result = METHODS.map(method => ({
+    const ingresosByMethod = METHODS.map(method => ({
       method,
-      egresos: egresosMap[method] || 0,
-      ingresos: ingresosMap[method] || 0,
-      balance: (ingresosMap[method] || 0) - (egresosMap[method] || 0),
+      ingresos: ingresosMap[method] || 0
     }));
 
-    // Totals row
-    const totals = result.reduce((acc, r) => ({
-      method: 'Total',
-      egresos: acc.egresos + r.egresos,
-      ingresos: acc.ingresos + r.ingresos,
-      balance: acc.balance + r.balance,
-    }), { method: 'Total', egresos: 0, ingresos: 0, balance: 0 });
+    const totalIngresos = ingresosByMethod.reduce((acc, r) => acc + r.ingresos, 0);
 
-    res.json({ rows: result, totals });
+    const allDeudores = deudoresRes.rows.map(d => ({ name: d.name, deuda: Number(d.deuda) }));
+    const totalDeudaGlobal = allDeudores.reduce((acc, d) => acc + d.deuda, 0);
+    const topDeudores = allDeudores.slice(0, 5);
+
+    res.json({
+      ingresos: ingresosByMethod,
+      total_ingresos: totalIngresos,
+      total_deuda: totalDeudaGlobal,
+      top_deudores: topDeudores
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al generar reporte de pagos' });

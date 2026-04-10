@@ -39,6 +39,26 @@ async function migrate() {
     `);
     console.log('✅  Table "sale_items" ready.');
 
+    // Nuevo esquema de inventario (mapeado desde el Excel)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS inventario (
+        id             SERIAL PRIMARY KEY,
+        codigo         VARCHAR(50),
+        producto       TEXT NOT NULL,
+        p_costo        NUMERIC(12,2),
+        p_venta        NUMERIC(12,2),
+        p_mayoreo      NUMERIC(12,2),
+        existencia     NUMERIC(10,2) DEFAULT 0,
+        inv_minimo     NUMERIC(10,2) DEFAULT 0,
+        inv_maximo     NUMERIC(10,2) DEFAULT 0,
+        departamento   VARCHAR(100),
+        created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        edited_at      TIMESTAMPTZ,
+        deleted_at     TIMESTAMPTZ
+      );
+    `);
+    console.log('✅  Table "inventario" ready.');
+
   } finally {
     client.release();
     await pool.end();

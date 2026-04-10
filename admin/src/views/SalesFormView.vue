@@ -18,15 +18,7 @@
       <div class="p-6 bg-white border border-gray-200 rounded-2xl dark:bg-gray-900 dark:border-gray-800 shadow-theme-xs">
         <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">Datos de la Venta</h3>
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <div>
-            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Folio</label>
-            <input 
-              v-model="saleData.folio" 
-              type="text" 
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white outline-none" 
-              placeholder="Autogenerado si está vacío"
-            />
-          </div>
+
           <!-- Client Autocomplete -->
           <div ref="clientContainer" class="relative">
             <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Nombre (Cliente)</label>
@@ -55,18 +47,7 @@
               </li>
             </ul>
           </div>
-          <div>
-            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Forma de Pago</label>
-            <select 
-              v-model="saleData.paymentMethod" 
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white outline-none"
-            >
-              <option value="Efectivo">Efectivo</option>
-              <option value="Tarjeta">Tarjeta</option>
-              <option value="Transferencia">Transferencia</option>
-              <option value="Crédito">Crédito</option>
-            </select>
-          </div>
+
         </div>
       </div>
 
@@ -115,15 +96,7 @@
             </div>
           </div>
           
-          <div class="w-full lg:w-24">
-            <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">UTM</label>
-            <input 
-              v-model="newProduct.unit" 
-              type="text" 
-              disabled
-              class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 outline-none"
-            />
-          </div>
+
 
           <div class="w-full lg:w-24">
             <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Cantidad</label>
@@ -204,7 +177,6 @@
               <tr>
                 <th scope="col" class="px-6 py-4 font-medium">Producto</th>
                 <th scope="col" class="px-6 py-4 font-medium">Cantidad</th>
-                <th scope="col" class="px-6 py-4 font-medium">UTM</th>
                 <th scope="col" class="px-6 py-4 font-medium">Precio Unit.</th>
                 <th scope="col" class="px-6 py-4 font-medium">Descuento</th>
                 <th scope="col" class="px-6 py-4 font-medium">Subtotal</th>
@@ -226,7 +198,6 @@
                   {{ product.name }}
                 </td>
                 <td class="px-6 py-4">{{ product.quantity }}</td>
-                <td class="px-6 py-4">{{ product.unit }}</td>
                 <td class="px-6 py-4">${{ Number(product.price).toFixed(2) }}</td>
                 <td class="px-6 py-4">${{ Number(product.discount).toFixed(2) }}</td>
                 <td class="px-6 py-4 font-semibold text-gray-900 dark:text-white">${{ Number(product.subtotal).toFixed(2) }}</td>

@@ -215,43 +215,68 @@ const route = useRoute();
 
 const { isExpanded, isMobileOpen, isHovered, openSubmenu } = useSidebar();
 
-const menuGroups = [
-  {
-    title: "Menu",
-    items: [
-      {
-        icon: UserCircleIcon,
-        name: "Usuarios",
-        path: "/usuarios",
-      },
-      {
-        icon: UserGroupIcon,
-        name: "Clientes",
-        path: "/clientes",
-      },
-      {
-        icon: DocsIcon,
-        name: "Compras",
-        path: "/compras",
-      },
-      {
-        icon: ListIcon,
-        name: "Inventario",
-        path: "/inventario",
-      },
-      {
-        icon: PageIcon,
-        name: "Ventas",
-        path: "/ventas",
-      },
-      {
-        icon: PieChartIcon,
-        name: "Reportes",
-        path: "/reportes",
-      },
-    ],
-  },
-];
+// Read user from storage to get the role
+const storedUser = computed(() => {
+  try {
+    const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+});
+const userRole = computed(() => storedUser.value?.role || '');
+
+const menuGroups = computed(() => {
+  const items = [
+    {
+      icon: UserCircleIcon,
+      name: "Usuarios",
+      path: "/usuarios",
+    },
+    {
+      icon: UserGroupIcon,
+      name: "Clientes",
+      path: "/clientes",
+    },
+    {
+      icon: DocsIcon,
+      name: "Compras",
+      path: "/compras",
+    },
+    {
+      icon: ListIcon,
+      name: "Inventario",
+      path: "/inventario",
+    },
+    {
+      icon: PageIcon,
+      name: "Ventas",
+      path: "/ventas",
+    },
+    {
+      icon: HorizontalDots,
+      name: "Cuentas",
+      path: "/cuentas",
+    },
+    {
+      icon: PieChartIcon,
+      name: "Reportes",
+      path: "/reportes",
+    },
+  ];
+
+  const filteredItems = items.filter(item => {
+    if (item.name === 'Compras') {
+      return userRole.value === 'Sistemas';
+    }
+    return true;
+  });
+
+  return [
+    {
+      title: "Menu",
+      items: filteredItems,
+    },
+  ];
+});
 
 const isActive = (path) => route.path === path;
 
@@ -261,7 +286,7 @@ const toggleSubmenu = (groupIndex, itemIndex) => {
 };
 
 const isAnySubmenuRouteActive = computed(() => {
-  return menuGroups.some((group) =>
+  return menuGroups.value.some((group) =>
     group.items.some(
       (item) =>
         item.subItems && item.subItems.some((subItem) => isActive(subItem.path))
@@ -274,7 +299,7 @@ const isSubmenuOpen = (groupIndex, itemIndex) => {
   return (
     openSubmenu.value === key ||
     (isAnySubmenuRouteActive.value &&
-      menuGroups[groupIndex].items[itemIndex].subItems?.some((subItem) =>
+      menuGroups.value[groupIndex].items[itemIndex].subItems?.some((subItem) =>
         isActive(subItem.path)
       ))
   );

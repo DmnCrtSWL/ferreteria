@@ -57,237 +57,99 @@
       <div v-else-if="error" class="px-4 py-3 text-sm text-red-700 bg-red-100 rounded-xl">{{ error }}</div>
 
       <template v-else>
-        <!-- ── Summary header cards ── -->
-        <div class="grid grid-cols-3 gap-4">
-          <!-- Egresos total -->
-          <div class="relative overflow-hidden p-5 bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl text-white shadow-lg">
-            <div class="flex items-center justify-between mb-3">
-              <p class="text-sm font-medium text-rose-100">Total Egresos</p>
-              <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                <!-- Arrow down / spending icon -->
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"/>
-                </svg>
-              </div>
-            </div>
-            <p class="text-2xl font-bold">{{ fmt(totals.egresos) }}</p>
-            <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full"/>
-          </div>
+        <!-- ── 2 Column Layout ── -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-          <!-- Ingresos total -->
-          <div class="relative overflow-hidden p-5 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl text-white shadow-lg">
-            <div class="flex items-center justify-between mb-3">
-              <p class="text-sm font-medium text-emerald-100">Total Ingresos</p>
-              <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                <!-- Arrow up / income icon -->
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/>
-                </svg>
-              </div>
-            </div>
-            <p class="text-2xl font-bold">{{ fmt(totals.ingresos) }}</p>
-            <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full"/>
-          </div>
-
-          <!-- Balance total -->
-          <div class="relative overflow-hidden p-5 rounded-2xl text-white shadow-lg"
-            :class="totals.balance >= 0 ? 'bg-gradient-to-br from-blue-500 to-blue-600' : 'bg-gradient-to-br from-amber-500 to-amber-600'">
-            <div class="flex items-center justify-between mb-3">
-              <p class="text-sm font-medium opacity-80">Balance Total</p>
-              <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-                </svg>
-              </div>
-            </div>
-            <p class="text-2xl font-bold">{{ fmt(totals.balance) }}</p>
-            <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full"/>
-          </div>
-        </div>
-
-        <!-- ── 3-column breakdown ── -->
-        <div class="grid grid-cols-3 gap-4">
-
-          <!-- ── COLUMN 1: EGRESOS ── -->
-          <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-theme-xs overflow-hidden">
-            <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-rose-50 dark:bg-rose-900/20">
-              <div class="w-9 h-9 bg-rose-100 dark:bg-rose-900/40 rounded-xl flex items-center justify-center text-rose-600 dark:text-rose-400">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-              </div>
-              <div>
-                <h3 class="text-sm font-bold text-gray-800 dark:text-white">Egresos</h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Compras por forma de pago</p>
-              </div>
-            </div>
-            <div class="divide-y divide-gray-100 dark:divide-gray-800">
-              <div v-for="row in rows" :key="'e-'+row.method" class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="methodStyle(row.method).bg">
-                    <component :is="methodStyle(row.method).iconComp" class="w-4 h-4" :class="methodStyle(row.method).icon" />
-                  </div>
-                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ row.method }}</span>
-                </div>
-                <span class="text-sm font-semibold" :class="row.egresos > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-400'">
-                  {{ fmt(row.egresos) }}
-                </span>
-              </div>
-            </div>
-            <!-- Subtotal -->
-            <div class="flex items-center justify-between px-5 py-3 bg-rose-50 dark:bg-rose-900/20 border-t border-rose-100 dark:border-rose-900/30">
-              <span class="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wide">Total</span>
-              <span class="text-sm font-bold text-rose-700 dark:text-rose-300">{{ fmt(totals.egresos) }}</span>
-            </div>
-          </div>
-
-          <!-- ── COLUMN 2: INGRESOS ── -->
-          <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-theme-xs overflow-hidden">
-            <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-emerald-50 dark:bg-emerald-900/20">
-              <div class="w-9 h-9 bg-emerald-100 dark:bg-emerald-900/40 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              <div>
-                <h3 class="text-sm font-bold text-gray-800 dark:text-white">Ingresos</h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Ventas por forma de pago</p>
-              </div>
-            </div>
-            <div class="divide-y divide-gray-100 dark:divide-gray-800">
-              <div v-for="row in rows" :key="'i-'+row.method" class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="methodStyle(row.method).bg">
-                    <component :is="methodStyle(row.method).iconComp" class="w-4 h-4" :class="methodStyle(row.method).icon" />
-                  </div>
-                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ row.method }}</span>
-                </div>
-                <span class="text-sm font-semibold" :class="row.ingresos > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'">
-                  {{ fmt(row.ingresos) }}
-                </span>
-              </div>
-            </div>
-            <!-- Subtotal -->
-            <div class="flex items-center justify-between px-5 py-3 bg-emerald-50 dark:bg-emerald-900/20 border-t border-emerald-100 dark:border-emerald-900/30">
-              <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Total</span>
-              <span class="text-sm font-bold text-emerald-700 dark:text-emerald-300">{{ fmt(totals.ingresos) }}</span>
-            </div>
-          </div>
-
-          <!-- ── COLUMN 3: BALANCE ── -->
-          <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-theme-xs overflow-hidden">
-            <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-blue-50 dark:bg-blue-900/20">
-              <div class="w-9 h-9 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-              </div>
-              <div>
-                <h3 class="text-sm font-bold text-gray-800 dark:text-white">Balance</h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Ingresos − Egresos</p>
-              </div>
-            </div>
-            <div class="divide-y divide-gray-100 dark:divide-gray-800">
-              <div v-for="row in rows" :key="'b-'+row.method" class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="methodStyle(row.method).bg">
-                    <component :is="methodStyle(row.method).iconComp" class="w-4 h-4" :class="methodStyle(row.method).icon" />
-                  </div>
-                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ row.method }}</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <!-- Trend icon -->
-                  <svg v-if="row.balance > 0" class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
+          <!-- ── COLUMN 1: INGRESOS ── -->
+          <div class="space-y-6">
+            <!-- Metric -->
+            <div class="relative overflow-hidden p-5 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl text-white shadow-lg">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-medium text-emerald-100">Total Ingresos (Cobranza)</p>
+                <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/>
                   </svg>
-                  <svg v-else-if="row.balance < 0" class="w-3.5 h-3.5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                  </svg>
-                  <svg v-else class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14"/>
-                  </svg>
-                  <span class="text-sm font-semibold"
-                    :class="row.balance > 0 ? 'text-emerald-600 dark:text-emerald-400' : row.balance < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-400'">
-                    {{ fmt(row.balance) }}
-                  </span>
                 </div>
               </div>
+              <p class="text-3xl font-bold">{{ fmt(reportData.total_ingresos) }}</p>
+              <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full"/>
             </div>
-            <!-- Subtotal -->
-            <div class="flex items-center justify-between px-5 py-3 border-t"
-              :class="totals.balance >= 0 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900/30' : 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-900/30'">
-              <span class="text-xs font-semibold uppercase tracking-wide"
-                :class="totals.balance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'">Total</span>
-              <div class="flex items-center gap-1.5">
-                <svg v-if="totals.balance > 0" class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
-                </svg>
-                <svg v-else-if="totals.balance < 0" class="w-3.5 h-3.5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                </svg>
-                <span class="text-sm font-bold"
-                  :class="totals.balance >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-rose-700 dark:text-rose-300'">
-                  {{ fmt(totals.balance) }}
-                </span>
+
+            <!-- Breakdown Table -->
+            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-theme-xs overflow-hidden">
+               <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-emerald-50 dark:bg-emerald-900/20">
+                  <div class="w-9 h-9 bg-emerald-100 dark:bg-emerald-900/40 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-bold text-gray-800 dark:text-white">Ingresos por Método</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Pagos completados en cuentas</p>
+                  </div>
+               </div>
+               <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                  <div v-for="r in reportData.ingresos" :key="r.method" class="flex items-center justify-between px-5 py-4">
+                     <div class="flex items-center gap-3">
+                       <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="methodStyle(r.method).bg">
+                         <component :is="methodStyle(r.method).iconComp" class="w-4 h-4" :class="methodStyle(r.method).icon" />
+                       </div>
+                       <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ r.method }}</span>
+                     </div>
+                     <span class="text-sm font-bold text-emerald-600 dark:text-emerald-400">{{ fmt(r.ingresos) }}</span>
+                  </div>
+                  <div v-if="!reportData.ingresos?.length" class="p-6 text-center text-sm text-gray-500">
+                    No hay ingresos registrados en el periodo.
+                  </div>
+               </div>
+            </div>
+          </div>
+
+          <!-- ── COLUMN 2: BALANCE / DEUDORES ── -->
+          <div class="space-y-6">
+            <!-- Metric -->
+            <div class="relative overflow-hidden p-5 bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl text-white shadow-lg">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-medium text-amber-100">Global Acumulado por Cobrar</p>
+                <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                   </svg>
+                </div>
               </div>
+              <p class="text-3xl font-bold">{{ fmt(reportData.total_deuda) }}</p>
+              <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-white/10 rounded-full"/>
+            </div>
+
+            <!-- Breakdown Table -->
+            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-theme-xs overflow-hidden">
+               <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-amber-50 dark:bg-amber-900/20">
+                  <div class="w-9 h-9 bg-amber-100 dark:bg-amber-900/40 rounded-xl flex items-center justify-center text-amber-600 dark:text-amber-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-bold text-gray-800 dark:text-white">Top 5 Deudores</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Cuentas con mayor deuda acumulada</p>
+                  </div>
+               </div>
+               <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                  <div v-for="(d, i) in reportData.top_deudores" :key="d.name" class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                     <div class="flex items-center gap-3">
+                       <span class="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-xs flex items-center justify-center font-bold">{{ i + 1 }}</span>
+                       <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ d.name }}</span>
+                     </div>
+                     <span class="text-sm font-bold text-amber-600 dark:text-amber-400">{{ fmt(d.deuda) }}</span>
+                  </div>
+                  <div v-if="!reportData.top_deudores?.length" class="p-8 text-center text-sm text-gray-500">
+                    Ningún cliente tiene adeudos. 🎉
+                  </div>
+               </div>
             </div>
           </div>
 
-        </div>
-
-        <!-- ── Detailed table (all 3 in one) ── -->
-        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-theme-xs overflow-hidden">
-          <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-            <h3 class="text-sm font-bold text-gray-800 dark:text-white">Resumen por Forma de Pago</h3>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left">
-              <thead class="text-xs text-gray-600 uppercase bg-gray-50 dark:bg-gray-800 dark:text-gray-400">
-                <tr>
-                  <th class="px-6 py-3 font-medium">Forma de Pago</th>
-                  <th class="px-6 py-3 font-medium text-right text-rose-600 dark:text-rose-400">Egresos</th>
-                  <th class="px-6 py-3 font-medium text-right text-emerald-600 dark:text-emerald-400">Ingresos</th>
-                  <th class="px-6 py-3 font-medium text-right text-blue-600 dark:text-blue-400">Balance</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                <tr v-for="row in rows" :key="'t-'+row.method" class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td class="px-6 py-3">
-                    <div class="flex items-center gap-3">
-                      <div class="w-7 h-7 rounded-lg flex items-center justify-center" :class="methodStyle(row.method).bg">
-                        <component :is="methodStyle(row.method).iconComp" class="w-3.5 h-3.5" :class="methodStyle(row.method).icon" />
-                      </div>
-                      <span class="font-medium text-gray-700 dark:text-gray-200">{{ row.method }}</span>
-                    </div>
-                  </td>
-                  <td class="px-6 py-3 text-right font-medium" :class="row.egresos > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-400'">{{ fmt(row.egresos) }}</td>
-                  <td class="px-6 py-3 text-right font-medium" :class="row.ingresos > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'">{{ fmt(row.ingresos) }}</td>
-                  <td class="px-6 py-3 text-right">
-                    <div class="flex items-center justify-end gap-1.5">
-                      <svg v-if="row.balance > 0" class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"/></svg>
-                      <svg v-else-if="row.balance < 0" class="w-3 h-3 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"/></svg>
-                      <svg v-else class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 12h14"/></svg>
-                      <span class="font-semibold" :class="row.balance > 0 ? 'text-emerald-600 dark:text-emerald-400' : row.balance < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-400'">{{ fmt(row.balance) }}</span>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr class="bg-gray-50 dark:bg-gray-800 font-bold text-sm border-t-2 border-gray-200 dark:border-gray-700">
-                  <td class="px-6 py-3 text-gray-700 dark:text-gray-200">Total General</td>
-                  <td class="px-6 py-3 text-right text-rose-700 dark:text-rose-300">{{ fmt(totals.egresos) }}</td>
-                  <td class="px-6 py-3 text-right text-emerald-700 dark:text-emerald-300">{{ fmt(totals.ingresos) }}</td>
-                  <td class="px-6 py-3 text-right">
-                    <div class="flex items-center justify-end gap-1.5">
-                      <svg v-if="totals.balance > 0" class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"/></svg>
-                      <svg v-else-if="totals.balance < 0" class="w-3 h-3 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"/></svg>
-                      <span :class="totals.balance >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'">{{ fmt(totals.balance) }}</span>
-                    </div>
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
         </div>
       </template>
 
@@ -371,7 +233,7 @@ const methodStyle = (method: string) =>
 
 // ── Formatter ────────────────────────────────────────────────────────────────
 const fmt = (n: number) =>
-  '$' + Math.abs(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  '$' + (n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // ── Period filter ─────────────────────────────────────────────────────────────
 const periods = [
@@ -392,10 +254,7 @@ const setPeriod = (val: string) => {
 }
 
 // ── Data ──────────────────────────────────────────────────────────────────────
-interface ReportRow { method: string; egresos: number; ingresos: number; balance: number }
-
-const rows = ref<ReportRow[]>([])
-const totals = ref<ReportRow>({ method: 'Total', egresos: 0, ingresos: 0, balance: 0 })
+const reportData = ref<any>({})
 const loading = ref(true)
 const error = ref('')
 
@@ -414,9 +273,7 @@ const fetchReport = async () => {
   try {
     const res = await fetch(`${API}/api/reports/payments?${buildQuery()}`)
     if (!res.ok) throw new Error()
-    const data = await res.json()
-    rows.value = data.rows
-    totals.value = data.totals
+    reportData.value = await res.json()
   } catch {
     error.value = 'No se pudo cargar el reporte. Intenta de nuevo.'
   } finally {

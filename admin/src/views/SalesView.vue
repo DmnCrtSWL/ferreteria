@@ -75,9 +75,7 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-800 dark:text-gray-300">
               <tr>
                 <th scope="col" class="px-6 py-4 font-medium">ID</th>
-                <th scope="col" class="px-6 py-4 font-medium">Folio</th>
                 <th scope="col" class="px-6 py-4 font-medium">Nombre</th>
-                <th scope="col" class="px-6 py-4 font-medium">Forma de Pago</th>
                 <th scope="col" class="px-6 py-4 font-medium">Fecha</th>
                 <th scope="col" class="px-6 py-4 font-medium">Total</th>
                 <th scope="col" class="px-6 py-4 font-medium text-center">Acciones</th>
@@ -95,13 +93,7 @@
                 <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                   #{{ sale.id }}
                 </td>
-                <td class="px-6 py-4">{{ sale.folio || '—' }}</td>
                 <td class="px-6 py-4">{{ sale.client_name }}</td>
-                <td class="px-6 py-4">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
-                    {{ sale.payment_method }}
-                  </span>
-                </td>
                 <td class="px-6 py-4">{{ fmtDate(sale.date) }}</td>
                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">${{ Number(sale.total).toFixed(2) }}</td>
                 <td class="px-6 py-4">
@@ -144,9 +136,7 @@
           <div class="p-6 overflow-y-auto">
             <div class="grid grid-cols-2 gap-4 mb-6">
               <div><span class="block text-xs text-gray-500">Cliente</span><span class="font-medium dark:text-white">{{ detailSale.client_name }}</span></div>
-              <div><span class="block text-xs text-gray-500">Folio</span><span class="font-medium dark:text-white">{{ detailSale.folio || '—' }}</span></div>
               <div><span class="block text-xs text-gray-500">Fecha</span><span class="font-medium dark:text-white">{{ fmtDate(detailSale.date) }}</span></div>
-              <div><span class="block text-xs text-gray-500">Pago</span><span class="font-medium dark:text-white">{{ detailSale.payment_method }}</span></div>
             </div>
 
             <h4 class="mb-3 text-sm font-semibold text-gray-800 dark:text-white">Productos (Ticket)</h4>
@@ -155,7 +145,6 @@
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-800/50 dark:text-gray-300">
                   <tr>
                     <th class="px-4 py-2 font-medium">Cant</th>
-                    <th class="px-4 py-2 font-medium">Unidad</th>
                     <th class="px-4 py-2 font-medium">Producto</th>
                     <th class="px-4 py-2 font-medium">P. Unit</th>
                     <th class="px-4 py-2 font-medium text-right">Subtotal</th>
@@ -164,7 +153,6 @@
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50">
                   <tr v-for="item in detailSale.items" :key="item.id" class="dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td class="px-4 py-2 font-medium text-gray-900 dark:text-white">{{ item.quantity }}</td>
-                    <td class="px-4 py-2">{{ item.unit }}</td>
                     <td class="px-4 py-2">{{ item.product_name }}</td>
                     <td class="px-4 py-2">${{ Number(item.price).toFixed(2) }}</td>
                     <td class="px-4 py-2 font-medium text-right text-gray-900 dark:text-white">${{ Number(item.subtotal).toFixed(2) }}</td>
@@ -187,21 +175,8 @@
           <div v-if="editError" class="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{{ editError }}</div>
           <div class="space-y-4">
             <div>
-              <label class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Folio</label>
-              <input v-model="editForm.folio" type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none dark:bg-gray-800 dark:border-gray-700 dark:text-white" />
-            </div>
-            <div>
               <label class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Cliente</label>
               <input v-model="editForm.client_name" type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none dark:bg-gray-800 dark:border-gray-700 dark:text-white" />
-            </div>
-            <div>
-              <label class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Forma de Pago</label>
-              <select v-model="editForm.payment_method" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none dark:bg-gray-800 dark:border-gray-700 dark:text-white">
-                <option value="Efectivo">Efectivo</option>
-                <option value="Tarjeta">Tarjeta</option>
-                <option value="Transferencia">Transferencia</option>
-                <option value="Crédito">Crédito</option>
-              </select>
             </div>
             <div>
               <label class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
