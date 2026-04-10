@@ -5,7 +5,7 @@ const { Pool } = require('pg');
 const multer = require('multer');
 const xlsx = require('xlsx');
 
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
 
@@ -509,7 +509,8 @@ app.post('/api/inventario/import', upload.single('file'), async (req, res) => {
   };
 
   try {
-    const workbook = xlsx.readFile(req.file.path);
+    // Con memoryStorage el archivo viene en req.file.buffer (no en disco)
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
@@ -573,10 +574,6 @@ app.post('/api/inventario/import', upload.single('file'), async (req, res) => {
       throw err;
     } finally {
       client.release();
-      const fs = require('fs');
-      if (fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
     }
   } catch (error) {
     console.error('Error importando Excel:', error);
