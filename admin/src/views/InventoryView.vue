@@ -319,7 +319,7 @@ const saveModifications = async (index: number) => {
   if (editingIndex.value === null || savingEdit.value) return // Already saved/cancelled
   
   const item = inventory.value[index]
-  const originalStock = Number(item.stock)
+  const originalStock = Number(item.existencia)
   const newStock = editValue.value
   
   if (originalStock === newStock) {

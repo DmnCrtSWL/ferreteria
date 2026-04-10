@@ -515,6 +515,10 @@ app.post('/api/inventario/import', upload.single('file'), async (req, res) => {
     const sheet = workbook.Sheets[sheetName];
     const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
     
+    // DEBUG: log header and first 3 rows to diagnose column mapping
+    console.log('[IMPORT] Header row:', JSON.stringify(data[0]));
+    data.slice(1, 4).forEach((row, i) => console.log(`[IMPORT] Row ${i+1}:`, JSON.stringify(row)));
+
     const rowsRaw = data.slice(1);
     
     const client = await pool.connect();
