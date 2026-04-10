@@ -204,7 +204,6 @@ import {
   PageIcon,
   PieChartIcon,
   ListIcon,
-  DocsIcon,
   ChevronDownIcon,
   HorizontalDots,
 } from "../../icons";
@@ -237,11 +236,6 @@ const menuGroups = computed(() => {
       path: "/clientes",
     },
     {
-      icon: DocsIcon,
-      name: "Compras",
-      path: "/compras",
-    },
-    {
       icon: ListIcon,
       name: "Inventario",
       path: "/inventario",
@@ -263,17 +257,10 @@ const menuGroups = computed(() => {
     },
   ];
 
-  const filteredItems = items.filter(item => {
-    if (item.name === 'Compras') {
-      return userRole.value === 'Sistemas';
-    }
-    return true;
-  });
-
   return [
     {
       title: "Menu",
-      items: filteredItems,
+      items,
     },
   ];
 });
