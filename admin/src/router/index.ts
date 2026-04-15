@@ -41,11 +41,43 @@ const router = createRouter({
       },
     },
     {
+      path: '/clientes/:id/editar',
+      name: 'Editar Cliente',
+      component: () => import('../views/ClientFormView.vue'),
+      meta: {
+        title: 'Editar Cliente',
+      },
+    },
+    {
+      path: '/clientes/:id/ver',
+      name: 'Ver Cliente',
+      component: () => import('../views/ClientFormView.vue'),
+      meta: {
+        title: 'Ver Cliente',
+      },
+    },
+    {
       path: '/usuarios/nuevo',
       name: 'Nuevo Usuario',
       component: () => import('../views/UserFormView.vue'),
       meta: {
         title: 'Nuevo Usuario',
+      },
+    },
+    {
+      path: '/usuarios/:id/editar',
+      name: 'Editar Usuario',
+      component: () => import('../views/UserFormView.vue'),
+      meta: {
+        title: 'Editar Usuario',
+      },
+    },
+    {
+      path: '/usuarios/:id/ver',
+      name: 'Ver Usuario',
+      component: () => import('../views/UserFormView.vue'),
+      meta: {
+        title: 'Ver Usuario',
       },
     },
     {
@@ -110,6 +142,22 @@ const router = createRouter({
       component: () => import('../views/CuentasView.vue'),
       meta: {
         title: 'Cuentas',
+      },
+    },
+    {
+      path: '/presupuesto',
+      name: 'Presupuesto',
+      component: () => import('../views/PresupuestoView.vue'),
+      meta: {
+        title: 'Presupuesto',
+      },
+    },
+    {
+      path: '/presupuesto/nuevo',
+      name: 'Nuevo Presupuesto',
+      component: () => import('../views/PresupuestoFormView.vue'),
+      meta: {
+        title: 'Nuevo Presupuesto',
       },
     },
     {

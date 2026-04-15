@@ -2,21 +2,21 @@
   <admin-layout>
     <div class="space-y-6">
       <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <PageBreadcrumb pageTitle="Nueva Venta" />
+        <PageBreadcrumb pageTitle="Nuevo Presupuesto" />
         <router-link
-          to="/ventas"
+          to="/presupuesto"
           class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-50 transition-colors shadow-theme-xs dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
           </svg>
-          Volver a Ventas
+          Volver a Presupuestos
         </router-link>
       </div>
 
       <!-- 1. Header Card (Sale Information) -->
       <div class="p-6 bg-white border border-gray-200 rounded-2xl dark:bg-gray-900 dark:border-gray-800 shadow-theme-xs">
-        <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">Datos de la Venta</h3>
+        <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">Datos del Presupuesto</h3>
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
           <!-- Client Autocomplete -->
@@ -182,7 +182,7 @@
       <!-- 3. Table Card for Ticket Products -->
       <div class="overflow-hidden bg-white border border-gray-200 rounded-2xl dark:bg-gray-900 dark:border-gray-800 shadow-theme-xs">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Ticket de Venta</h3>
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Cotización</h3>
           <div class="text-xl font-bold text-brand-500">
             Total: ${{ totalSale.toFixed(2) }}
           </div>
@@ -203,7 +203,7 @@
             <tbody>
               <tr v-if="ticketProducts.length === 0">
                 <td colspan="7" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                  Agrega productos al ticket para comenzar la venta.
+                  Agrega productos para comenzar el presupuesto.
                 </td>
               </tr>
               <tr 
@@ -241,7 +241,7 @@
           class="px-8 py-3 text-sm font-medium text-white transition-colors rounded-full shadow-theme-xs bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           <span v-if="isSaving">Guardando...</span>
-          <span v-else>Guardar Venta</span>
+          <span v-else>Guardar Presupuesto</span>
         </button>
       </div>
 
@@ -260,7 +260,7 @@
               </div>
               <div>
                 <h3 class="font-semibold text-white text-base">Registrar nuevo cliente</h3>
-                <p class="text-xs text-white/80 mt-0.5">Para continuar con la venta es necesario completar los datos del cliente.</p>
+                <p class="text-xs text-white/80 mt-0.5">Para continuar con el presupuesto es necesario completar los datos del cliente.</p>
               </div>
             </div>
 
@@ -368,7 +368,7 @@
                 class="w-full px-6 py-3 text-sm font-semibold text-white bg-brand-500 rounded-xl hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 <svg v-if="newClientLoading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                {{ newClientLoading ? 'Registrando…' : 'Registrar cliente y finalizar venta' }}
+                {{ newClientLoading ? 'Registrando…' : 'Registrar cliente y finalizar' }}
               </button>
             </div>
           </div>
@@ -581,21 +581,21 @@ const newClientError = ref('')
 // Actual POST to the API - called after user decides what to do
 const doSaveSale = async () => {
   const body = {
-    folio: saleData.value.folio || `V-${Date.now().toString().slice(-6)}`,
+    folio: saleData.value.folio || `P-${Date.now().toString().slice(-6)}`,
     client_name: saleData.value.clientName || 'Anónimo',
     payment_method: saleData.value.paymentMethod,
     date: new Date().toISOString().split('T')[0],
     total: totalSale.value,
     items: ticketProducts.value
   }
-  const res = await fetch(`${API}/api/sales`, {
+  const res = await fetch(`${API}/api/presupuestos`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Error al guardar')
-  router.push('/ventas')
+  router.push('/presupuesto')
 }
 
 const saveSale = async () => {

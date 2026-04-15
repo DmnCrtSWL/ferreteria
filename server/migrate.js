@@ -59,6 +59,36 @@ async function migrate() {
     `);
     console.log('✅  Table "inventario" ready.');
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS presupuestos (
+        id             SERIAL PRIMARY KEY,
+        folio          TEXT,
+        client_name    TEXT NOT NULL,
+        payment_method TEXT NOT NULL,
+        date           DATE NOT NULL,
+        total          NUMERIC(12,2) NOT NULL,
+        created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        edited_at      TIMESTAMPTZ,
+        deleted_at     TIMESTAMPTZ
+      );
+    `);
+    console.log('✅  Table "presupuestos" ready.');
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS presupuesto_items (
+        id             SERIAL PRIMARY KEY,
+        presupuesto_id INTEGER NOT NULL REFERENCES presupuestos(id) ON DELETE CASCADE,
+        product_name   TEXT NOT NULL,
+        unit           TEXT NOT NULL,
+        quantity       NUMERIC(10,2) NOT NULL,
+        price          NUMERIC(12,2) NOT NULL,
+        discount       NUMERIC(12,2) NOT NULL DEFAULT 0,
+        subtotal       NUMERIC(12,2) NOT NULL,
+        created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    console.log('✅  Table "presupuesto_items" ready.');
+
   } finally {
     client.release();
     await pool.end();

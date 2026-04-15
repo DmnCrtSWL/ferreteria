@@ -3,15 +3,15 @@
     <div class="space-y-6">
       <!-- Header -->
       <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <PageBreadcrumb pageTitle="Ventas" />
+        <PageBreadcrumb pageTitle="Presupuestos" />
         <router-link
-          to="/ventas/nueva"
+          to="/presupuesto/nuevo"
           class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-full bg-brand-500 hover:bg-brand-600 transition-colors shadow-theme-xs whitespace-nowrap"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
           </svg>
-          Nueva Venta
+          Nuevo Presupuesto
         </router-link>
       </div>
 
@@ -66,7 +66,7 @@
         </button>
       </div>
 
-      <div v-if="loading" class="py-12 text-center text-gray-500">Cargando ventas...</div>
+      <div v-if="loading" class="py-12 text-center text-gray-500">Cargando presupuestos...</div>
       <div v-else-if="error" class="px-4 py-3 text-sm text-red-700 bg-red-100 rounded-lg">{{ error }}</div>
       
       <div v-else class="overflow-hidden bg-white border border-gray-200 rounded-2xl dark:bg-gray-900 dark:border-gray-800 shadow-theme-xs">
@@ -107,7 +107,7 @@
                     <button @click="openEdit(sale)" class="text-gray-400 hover:text-blue-500 transition-colors" title="Editar cabecera">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                     </button>
-                    <button @click="deleteSale(sale)" class="text-gray-400 hover:text-error-500 transition-colors" title="Eliminar y devolver stock">
+                    <button @click="deleteSale(sale)" class="text-gray-400 hover:text-error-500 transition-colors" title="Eliminar presupuesto">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
                   </div>
@@ -131,7 +131,7 @@
       <div v-if="detailSale" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm" @click.self="detailSale = null">
         <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl dark:bg-gray-800 overflow-hidden flex flex-col max-h-[90vh]">
           <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-800/50">
-            <h3 class="font-semibold text-gray-900 dark:text-white">Detalle de Venta #{{ detailSale.id }}</h3>
+            <h3 class="font-semibold text-gray-900 dark:text-white">Detalle de Presupuesto #{{ detailSale.id }}</h3>
             <button @click="detailSale = null" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
@@ -174,7 +174,7 @@
       <!-- Edit Modal (Header Only) -->
       <div v-if="editSale" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm" @click.self="editSale = null">
         <div class="w-full max-w-md p-6 bg-white rounded-2xl shadow-xl dark:bg-gray-800">
-          <h3 class="mb-5 text-xl font-bold text-gray-900 dark:text-white">Editar Cabecera Venta #{{ editSale.id }}</h3>
+          <h3 class="mb-5 text-xl font-bold text-gray-900 dark:text-white">Editar Cabecera Presupuesto #{{ editSale.id }}</h3>
           <div v-if="editError" class="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{{ editError }}</div>
           <div class="space-y-4">
             <div>
@@ -265,11 +265,11 @@ const fetchSales = async () => {
   loading.value = true
   error.value = ''
   try {
-    const res = await fetch(`${API}/api/sales`)
+    const res = await fetch(`${API}/api/presupuestos`)
     if (!res.ok) throw new Error()
     sales.value = await res.json()
   } catch {
-    error.value = 'No se pudieron cargar las ventas'
+    error.value = 'No se pudieron cargar los presupuestos'
   } finally {
     loading.value = false
   }
@@ -281,10 +281,10 @@ onMounted(fetchSales)
 const detailSale = ref<any | null>(null)
 const openDetail = async (id: number) => {
   try {
-    const res = await fetch(`${API}/api/sales/${id}`)
+    const res = await fetch(`${API}/api/presupuestos/${id}`)
     if (res.ok) detailSale.value = await res.json()
   } catch (err) {
-    alert('Error al cargar el detalle de la venta')
+    alert('Error al cargar el detalle del presupuesto')
   }
 }
 
@@ -292,11 +292,11 @@ const openDetail = async (id: number) => {
 const generateReceipt = async (saleId: number) => {
   let sale: any
   try {
-    const res = await fetch(`${API}/api/sales/${saleId}`)
+    const res = await fetch(`${API}/api/presupuestos/${saleId}`)
     if (!res.ok) throw new Error()
     sale = await res.json()
   } catch {
-    alert('No se pudo cargar el detalle de la venta')
+    alert('No se pudo cargar el detalle del presupuesto')
     return
   }
 
@@ -309,9 +309,11 @@ const generateReceipt = async (saleId: number) => {
       const match = cuentas.find((c: any) =>
         c.cliente?.toLowerCase().trim() === sale.client_name?.toLowerCase().trim()
       )
-      if (match) saldoAnterior = Number(match.cuenta_total)
     }
   } catch { /* silently ignore */ }
+
+  // Presupuestos DO NOT pull saldo anterior, user requested to be purely a quote
+  saldoAnterior = 0;
 
   // Load logo image first
   const logo = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -368,7 +370,7 @@ const generateReceipt = async (saleId: number) => {
   ctx.fillStyle = mid
   ctx.font = '12px Arial'
   ctx.textAlign = 'right'
-  ctx.fillText('NOTA DE VENTA', MR, y + 18)
+  ctx.fillText('PRESUPUESTO', MR, y + 18)
   ctx.fillStyle = brand
   ctx.font = 'bold 26px Arial'
   ctx.fillText(`#${sale.id}`, MR, y + 46)
@@ -437,21 +439,8 @@ const generateReceipt = async (saleId: number) => {
   items.forEach((item: any, i: number) => {
     const rowH = 30
 
-    // SALDO ANTERIOR: always light bg + italic
+    // SALDO ANTERIOR: always light bg + italic (Hidden for Presupuestos)
     if (item.isSaldo) {
-      ctx.fillStyle = '#eff6ff'
-      ctx.fillRect(ML, y, TW, rowH)
-      ctx.fillStyle = mid
-      ctx.font = 'italic 12px Arial'
-      ctx.textAlign = 'left'
-      ctx.fillText('SALDO ANTERIOR', c1, y + 20)
-      ctx.textAlign = 'right'
-      const saldoFmt = `$${Math.abs(Number(item.subtotal)).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
-      ctx.fillText(saldoFmt, MR, y + 20)
-      ctx.textAlign = 'left'
-      ctx.fillStyle = border
-      ctx.fillRect(ML, y + rowH, TW, 1)
-      y += rowH
       return
     }
 
@@ -521,7 +510,7 @@ const generateReceipt = async (saleId: number) => {
   // ── Download ─────────────────────────────────────────────────────────────────
   const link = document.createElement('a')
   const slug = (sale.client_name || 'cliente').replace(/\s+/g, '_').replace(/[^\w-]/g, '')
-  link.download = `recibo_${sale.id}_${slug}.png`
+  link.download = `presupuesto_${sale.id}_${slug}.png`
   link.href = canvas.toDataURL('image/png')
   link.click()
 }
@@ -547,7 +536,7 @@ const saveEdit = async () => {
   editLoading.value = true
   editError.value = ''
   try {
-    const res = await fetch(`${API}/api/sales/${editSale.value.id}`, {
+    const res = await fetch(`${API}/api/presupuestos/${editSale.value.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editForm.value)
@@ -570,12 +559,12 @@ const saveEdit = async () => {
 // ── DELETE ────────────────────────────────────────────────────────────────────
 const deleteSale = async (sale: any) => {
   const confirm = window.confirm(
-    `¿Estás seguro de eliminar la venta #${sale.id} de $${Number(sale.total).toFixed(2)}?\n\n¡Los productos de esta venta regresarán automáticamente al inventario!`
+    `¿Estás seguro de eliminar el presupuesto #${sale.id} de $${Number(sale.total).toFixed(2)}?`
   )
   if (!confirm) return
 
   try {
-    const res = await fetch(`${API}/api/sales/${sale.id}`, { method: 'DELETE' })
+    const res = await fetch(`${API}/api/presupuestos/${sale.id}`, { method: 'DELETE' })
     if (!res.ok) {
       const data = await res.json()
       throw new Error(data.error || 'Error al eliminar')

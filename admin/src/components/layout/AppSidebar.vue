@@ -206,6 +206,7 @@ import {
   ListIcon,
   ChevronDownIcon,
   HorizontalDots,
+  MoneyIcon,
 } from "../../icons";
 import SidebarWidget from "./SidebarWidget.vue";
 import { useSidebar } from "@/composables/useSidebar";
@@ -249,6 +250,11 @@ const menuGroups = computed(() => {
       icon: HorizontalDots,
       name: "Cuentas",
       path: "/cuentas",
+    },
+    {
+      icon: MoneyIcon,
+      name: "Presupuesto",
+      path: "/presupuesto",
     },
     {
       icon: PieChartIcon,

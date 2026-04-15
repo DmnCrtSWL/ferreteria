@@ -51,6 +51,35 @@ pool.connect((err, client, release) => {
         deleted_at TIMESTAMP WITH TIME ZONE
       );
     `).catch(err => console.error('Error creating client_payments table', err));
+
+    client.query(`
+      CREATE TABLE IF NOT EXISTS presupuestos (
+        id             SERIAL PRIMARY KEY,
+        folio          TEXT,
+        client_name    TEXT NOT NULL,
+        payment_method TEXT NOT NULL,
+        date           DATE NOT NULL,
+        total          NUMERIC(12,2) NOT NULL,
+        created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        edited_at      TIMESTAMPTZ,
+        deleted_at     TIMESTAMPTZ
+      );
+    `).catch(err => console.error('Error creating presupuestos table', err));
+
+    client.query(`
+      CREATE TABLE IF NOT EXISTS presupuesto_items (
+        id             SERIAL PRIMARY KEY,
+        presupuesto_id INTEGER NOT NULL REFERENCES presupuestos(id) ON DELETE CASCADE,
+        product_name   TEXT NOT NULL,
+        unit           TEXT NOT NULL,
+        quantity       NUMERIC(10,2) NOT NULL,
+        price          NUMERIC(12,2) NOT NULL,
+        discount       NUMERIC(12,2) NOT NULL DEFAULT 0,
+        subtotal       NUMERIC(12,2) NOT NULL,
+        created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `).catch(err => console.error('Error creating presupuesto_items table', err));
+
     release();
   }
 });
@@ -426,64 +455,30 @@ app.get('/api/inventario', async (req, res) => {
   }
 });
 
-app.post('/api/inventario', async (req, res) => {
-  const { 
-    codigo, 
-    producto, 
-    p_costo, 
-    p_venta, 
-    p_mayoreo, 
-    existencia, 
-    inv_minimo, 
-    inv_maximo, 
-    departamento 
-  } = req.body;
-
-  if (!producto) {
-    return res.status(400).json({ error: 'El nombre del producto es requerido' });
-  }
-
-  try {
-    const { rows } = await pool.query(`
-      INSERT INTO inventario (codigo, producto, p_costo, p_venta, p_mayoreo, existencia, inv_minimo, inv_maximo, departamento)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *
-    `, [
-      codigo || null, 
-      producto, 
-      p_costo || 0, 
-      p_venta || 0, 
-      p_mayoreo || 0, 
-      existencia || 0, 
-      inv_minimo || 0, 
-      inv_maximo || 0, 
-      departamento || null
-    ]);
-    res.status(201).json(rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al crear producto en el inventario' });
-  }
-});
-
 app.put('/api/inventario/:id', async (req, res) => {
-  const { existencia, p_venta, p_mayoreo } = req.body;
+  const { codigo, producto, p_costo, p_venta, p_mayoreo, existencia, inv_minimo, inv_maximo, departamento } = req.body;
   const fields = [];
   const values = [];
   let idx = 1;
 
-  if (existencia !== undefined) { fields.push(`existencia = $${idx++}`); values.push(existencia); }
-  if (p_venta !== undefined) { fields.push(`p_venta = $${idx++}`); values.push(p_venta); }
-  if (p_mayoreo !== undefined) { fields.push(`p_mayoreo = $${idx++}`); values.push(p_mayoreo); }
+  if (codigo      !== undefined) { fields.push(`codigo = $${idx++}`);      values.push(codigo); }
+  if (producto    !== undefined) { fields.push(`producto = $${idx++}`);    values.push(producto); }
+  if (p_costo     !== undefined) { fields.push(`p_costo = $${idx++}`);     values.push(p_costo); }
+  if (p_venta     !== undefined) { fields.push(`p_venta = $${idx++}`);     values.push(p_venta); }
+  if (p_mayoreo   !== undefined) { fields.push(`p_mayoreo = $${idx++}`);   values.push(p_mayoreo); }
+  if (existencia  !== undefined) { fields.push(`existencia = $${idx++}`);  values.push(existencia); }
+  if (inv_minimo  !== undefined) { fields.push(`inv_minimo = $${idx++}`);  values.push(inv_minimo); }
+  if (inv_maximo  !== undefined) { fields.push(`inv_maximo = $${idx++}`);  values.push(inv_maximo); }
+  if (departamento !== undefined) { fields.push(`departamento = $${idx++}`); values.push(departamento || null); }
 
-  if (fields.length === 0) return res.status(400).json({ error: 'Faltan campos (existencia, p_venta o p_mayoreo)' });
+  if (fields.length === 0) return res.status(400).json({ error: 'No se proporcionaron campos para actualizar' });
 
   fields.push(`edited_at = NOW()`);
   values.push(req.params.id);
 
   try {
     const { rows } = await pool.query(`
-      UPDATE inventario 
+      UPDATE inventario
       SET ${fields.join(', ')}
       WHERE id = $${idx} AND deleted_at IS NULL
       RETURNING *
@@ -779,13 +774,131 @@ app.delete('/api/sales/:id', async (req, res) => {
   }
 });
 
+// ─── PRESUPUESTOS (Cotizaciones sin afectar inventario ni saldo) ──────────────
+
+app.get('/api/presupuestos', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT * FROM presupuestos
+      WHERE deleted_at IS NULL
+      ORDER BY date DESC, id DESC
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error fetching presupuestos' });
+  }
+});
+
+app.get('/api/presupuestos/:id', async (req, res) => {
+  try {
+    const header = await pool.query('SELECT * FROM presupuestos WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
+    if (header.rows.length === 0) return res.status(404).json({ error: 'Presupuesto no encontrado' });
+
+    const items = await pool.query(`
+      SELECT id, product_name, unit, quantity, price, discount, subtotal
+      FROM presupuesto_items
+      WHERE presupuesto_id = $1
+      ORDER BY id
+    `, [req.params.id]);
+
+    res.json({ ...header.rows[0], items: items.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error fetching presupuesto detail' });
+  }
+});
+
+app.post('/api/presupuestos', async (req, res) => {
+  const { folio, client_name, payment_method, date, total, items } = req.body;
+  if (!client_name || !date || total == null || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Faltan datos del presupuesto o productos' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(`
+      INSERT INTO presupuestos (folio, client_name, payment_method, date, total)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id
+    `, [folio || null, client_name, payment_method || 'Efectivo', date, total]);
+    const id = result.rows[0].id;
+
+    for (const item of items) {
+      await client.query(`
+        INSERT INTO presupuesto_items (presupuesto_id, product_name, unit, quantity, price, discount, subtotal)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [id, item.name, item.unit, item.quantity, item.price, item.discount || 0, item.subtotal]);
+      // NO HAY AFECTACION A INVENTARIO
+    }
+
+    await client.query('COMMIT');
+    res.status(201).json({ message: 'Presupuesto registrado con éxito', id });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(400).json({ error: 'Error al crear el presupuesto' });
+  } finally {
+    client.release();
+  }
+});
+
+app.put('/api/presupuestos/:id', async (req, res) => {
+  const { folio, client_name, payment_method, date } = req.body;
+  const fields = [];
+  const values = [];
+  let idx = 1;
+
+  if (folio !== undefined) { fields.push(`folio = $${idx++}`); values.push(folio); }
+  if (client_name) { fields.push(`client_name = $${idx++}`); values.push(client_name); }
+  if (payment_method) { fields.push(`payment_method = $${idx++}`); values.push(payment_method); }
+  if (date) { fields.push(`date = $${idx++}`); values.push(date); }
+
+  if (fields.length === 0) return res.status(400).json({ error: 'Sin campos para actualizar' });
+
+  fields.push(`edited_at = NOW()`);
+  values.push(req.params.id);
+
+  try {
+    const { rows } = await pool.query(`
+      UPDATE presupuestos SET ${fields.join(', ')}
+      WHERE id = $${idx} AND deleted_at IS NULL
+      RETURNING *
+    `, values);
+    if (!rows.length) return res.status(404).json({ error: 'Presupuesto no encontrado' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar el presupuesto' });
+  }
+});
+
+app.delete('/api/presupuestos/:id', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      UPDATE presupuestos SET deleted_at = NOW()
+      WHERE id = $1 AND deleted_at IS NULL
+      RETURNING id
+    `, [req.params.id]);
+    
+    if (!rows.length) return res.status(404).json({ error: 'Presupuesto no encontrado o ya eliminado' });
+    // NO HAY DEVOLUCION DE STOCK
+    res.json({ message: 'Presupuesto eliminado exitosamente' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al eliminar el presupuesto' });
+  }
+});
+
 // ─── Exports / Start ──────────────────────────────────────────────────────────
 // ─── CLIENTES ────────────────────────────────────────────────────────────────
 // GET /api/clientes
 app.get('/api/clientes', async (req, res) => {
   try {
     const { rows } = await pool.query(`
-      SELECT id, folio, name, phone, address, created_at, edited_at
+      SELECT id, folio, name, phone, rfc, regimen_fiscal, address, created_at, edited_at
       FROM clientes
       WHERE deleted_at IS NULL
       ORDER BY id DESC
@@ -801,7 +914,7 @@ app.get('/api/clientes', async (req, res) => {
 app.get('/api/clientes/:id', async (req, res) => {
   try {
     const { rows } = await pool.query(`
-      SELECT id, folio, name, phone, address, created_at, edited_at
+      SELECT id, folio, name, phone, rfc, regimen_fiscal, address, created_at, edited_at
       FROM clientes
       WHERE id = $1 AND deleted_at IS NULL
     `, [req.params.id]);
@@ -813,9 +926,37 @@ app.get('/api/clientes/:id', async (req, res) => {
   }
 });
 
+// GET /api/clientes/:id/saldo — balance for a client (payments - sales)
+app.get('/api/clientes/:id/saldo', async (req, res) => {
+  try {
+    const { rows: clientRows } = await pool.query(
+      `SELECT name FROM clientes WHERE id = $1 AND deleted_at IS NULL`,
+      [req.params.id]
+    );
+    if (!clientRows.length) return res.status(404).json({ error: 'Cliente no encontrado' });
+    const nombre = clientRows[0].name;
+
+    const { rows } = await pool.query(`
+      SELECT
+        COALESCE((SELECT SUM(amount) FROM client_payments
+                  WHERE LOWER(TRIM(client_name)) = LOWER(TRIM($1)) AND deleted_at IS NULL), 0)
+        -
+        COALESCE((SELECT SUM(total) FROM sales
+                  WHERE LOWER(TRIM(client_name)) = LOWER(TRIM($1)) AND deleted_at IS NULL), 0)
+        AS saldo
+    `, [nombre]);
+
+    res.json({ saldo: Number(rows[0].saldo) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener saldo' });
+  }
+});
+
+
 // POST /api/clientes
 app.post('/api/clientes', async (req, res) => {
-  const { name, phone, address } = req.body;
+  const { name, phone, rfc, regimen_fiscal, address } = req.body;
   if (!name) {
     return res.status(400).json({ error: 'El nombre es requerido' });
   }
@@ -826,10 +967,10 @@ app.post('/api/clientes', async (req, res) => {
     const folio = `CL-${ts}`;
 
     const { rows } = await pool.query(`
-      INSERT INTO clientes (folio, name, phone, address)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO clientes (folio, name, phone, rfc, regimen_fiscal, address)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
-    `, [folio, name, phone, address]);
+    `, [folio, name, phone || null, rfc || null, regimen_fiscal || null, address || null]);
     res.status(201).json(rows[0]);
   } catch (err) {
     console.error(err);
@@ -839,13 +980,15 @@ app.post('/api/clientes', async (req, res) => {
 
 // PUT /api/clientes/:id
 app.put('/api/clientes/:id', async (req, res) => {
-  const { name, phone, address } = req.body;
+  const { name, phone, rfc, regimen_fiscal, address } = req.body;
   const fields = [];
   const values = [];
   let idx = 1;
 
   if (name !== undefined) { fields.push(`name = $${idx++}`); values.push(name); }
   if (phone !== undefined) { fields.push(`phone = $${idx++}`); values.push(phone); }
+  if (rfc !== undefined) { fields.push(`rfc = $${idx++}`); values.push(rfc); }
+  if (regimen_fiscal !== undefined) { fields.push(`regimen_fiscal = $${idx++}`); values.push(regimen_fiscal); }
   if (address !== undefined) { fields.push(`address = $${idx++}`); values.push(address); }
 
   if (fields.length === 0) {
